@@ -7,15 +7,6 @@ spec.register_structure(
     'std.Object', [], [
     ])
 
-
-
-spec.register_structure(
-    'std.Integer', ['std.Object'], [
-        field('value', integer),
-    ])
-
-
-
 spec.register_structure(
     'std.List', ['std.Object'], [
         field('items', ref(array(ref(spec.structures['std.Object'])))),
@@ -61,57 +52,6 @@ spec.register_function(
 
 
 
-def Integer__init_(ctx: CompilerContext):
-    this  = ctx.get_parameter('this')
-    value = ctx.get_parameter('value')
-    # ===
-    ctx.call(('std.Object', '<ctor>'), [this.r], None, virtual=False)  # NOTE: this line should be generated automatically!
-    ctx.field_write(this.r, 'std.Integer', 'value', value.r)
-
-spec.register_function(
-    name='<ctor>',
-    parameters=[
-        ('this', ref(spec.structures['std.Integer'])),
-        ('value', integer),
-    ],
-    result=None,
-    implementation=Integer__init_,
-    structure='std.Integer',
-    tags={ 'public', 'constructor', },
-)
-
-
-
-def Integer_equals(ctx: CompilerContext):
-    this   = ctx.get_parameter('this')
-    other  = ctx.get_parameter('other')
-    result = ctx.get_function_result()
-    # ===
-    ctx.branch(lambda: (
-        ctx.instance_of(other.r, 'std.Integer')
-    )).when_true(lambda: (
-        ctx.write(
-            result.w,
-            ctx.field_read(this.r, 'std.Integer', 'value') == ctx.field_read(other.r, 'std.Integer', 'value')
-        ),
-    )).when_false(lambda: (
-        ctx.write(result.w, ctx.const(False, boolean)),
-    )).explore_if()
-
-spec.register_function(
-    name='equals',
-    parameters=[
-        ('this', ref(spec.structures['std.Integer'])),
-        ('other', ref(spec.structures['std.Object'])),
-    ],
-    result=boolean,
-    implementation=Integer_equals,
-    structure='std.Integer',
-    #tags={ 'public', },
-)
-
-
-
 def List__init_(ctx: CompilerContext):
     this = ctx.get_parameter('this')
     # ===
@@ -127,31 +67,6 @@ spec.register_function(
     implementation=List__init_,
     structure='std.List',
     tags={ 'public', 'constructor', },
-)
-
-
-
-def List_AddLast(ctx: CompilerContext):
-    this  = ctx.get_parameter('this')
-    value = ctx.get_parameter('value')
-    items = ctx.make_local_variable(reference)
-    count = ctx.make_local_variable(integer)
-    # ===
-    ctx.write(items.w, ctx.field_read(this.r, 'std.List', 'items'))
-    ctx.write(count.w, ctx.container_size(items.r))
-    ctx.array_set(reference, items.r, count.r, value.r)
-    ctx.array_set_size(reference, items.r, count.r + ctx.const(1))
-
-spec.register_function(
-    name='AddLast',
-    parameters=[
-        ('this', ref(spec.structures['std.List'])),
-        ('value', ref(spec.structures['std.Object'])),
-    ],
-    result=None,
-    implementation=List_AddLast,
-    structure='std.List',
-    tags={ 'public', },
 )
 
 
@@ -210,43 +125,7 @@ spec.register_function(
 
 
 
-def List_Remove(ctx: CompilerContext):
-    this  = ctx.get_parameter('this')
-    index = ctx.get_parameter('index')
-    items  = ctx.make_local_variable(reference)
-    offset = ctx.make_local_variable(integer)
-    count  = ctx.make_local_variable(integer)
-    # ===
-    ctx.write(items.w, ctx.field_read(this.r, 'std.List', 'items'))
-    ctx.branch(lambda: (
-        (index.r < ctx.const(0)) | (ctx.container_size(items.r) <= index.r)
-    )).when_true(lambda: (
-        ctx.error(),
-    )).when_false(lambda: (
-        ctx.write(offset.w, index.r + ctx.const(1)),
-        ctx.array_set_size(reference, items.r, ctx.container_size(items.r) - ctx.const(1)),
-        ctx.write(count.w, ctx.container_size(items.r) - index.r),
-        ctx.array_copy(reference,
-                       items.r, offset.r,
-                       items.r, index.r,
-                       count.r),
-    )).explore_if()
-
-spec.register_function(
-    name='Remove',
-    parameters=[
-        ('this', ref(spec.structures['std.List'])),
-        ('index', integer),
-    ],
-    result=None,
-    implementation=List_Remove,
-    structure='std.List',
-    tags={ 'public', },
-)
-
-
 if __name__ == "__main__":
     from micro_svm.serialization import save_context_to_file
     with open(f"./{__spec__.name.replace('.', '/')}.json", 'wt', encoding='utf8') as f:
         save_context_to_file(spec, f)
-
