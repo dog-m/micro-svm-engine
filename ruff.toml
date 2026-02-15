@@ -1,0 +1,54 @@
+# Exclude a variety of commonly ignored directories.
+exclude = [
+  ".git",
+  ".ruff_cache",
+  ".vscode",
+  "docs",
+  "examples",
+  "notes",
+  "__pycache__",
+]
+line-length = 120
+indent-width = 4
+
+[lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = [
+  "E4",
+  "E7",
+  "E9",
+
+  "F",
+
+  "W291",
+  "W292",
+  "W293",
+
+  "I001",
+  "I002",
+]
+ignore = [
+  "F403",
+  "F405",
+  "F821",
+  "F841",
+
+  "I001",
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[format]
+quote-style = "preserve"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+docstring-code-line-length = "dynamic"

@@ -1,0 +1,264 @@
+Z3 version: 4.14.1
+
+struct 'std.Object':
+
+    @constructor
+    @public
+    std.Object.<ctor> (this: ref<struct='std.Object'>) -> void:
+        SubroutineEnter
+        VariableWrite [dst=std.Object.<ctor>#this (local)]
+        SubroutineExit
+
+    @public
+    std.Object.equals (this: ref<struct='std.Object'>, other: ref<struct='std.Object'>) -> boolean:
+        SubroutineEnter
+        VariableWrite [dst=std.Object.equals#other (local)]
+        VariableWrite [dst=std.Object.equals#this (local)]
+        VariableRead [src=std.Object.equals#this (local)]
+        VariableRead [src=std.Object.equals#other (local)]
+        PrimitiveOp [op=EQ, inputs=2]
+        VariableWrite [dst=std.Object.equals#~result (local)]
+        VariableRead [src=std.Object.equals#~result (local)]
+        SubroutineExit
+
+
+
+struct 'std.Integer' extends 'std.Object':
+    value: integer
+
+    @constructor
+    @public
+    std.Integer.<ctor> (this: ref<struct='std.Integer'>, value: integer) -> void:
+        SubroutineEnter
+        VariableWrite [dst=std.Integer.<ctor>#value (local)]
+        VariableWrite [dst=std.Integer.<ctor>#this (local)]
+        VariableRead [src=std.Integer.<ctor>#this (local)]
+        CallStatic [func=std.Object.<ctor>, argc=1]
+        VariableRead [src=std.Integer.<ctor>#this (local)]
+        VariableRead [src=std.Integer.<ctor>#value (local)]
+        FieldWrite [dst=std.Integer.value]
+        SubroutineExit
+
+    std.Integer.equals (this: ref<struct='std.Integer'>, other: ref<struct='std.Object'>) -> boolean:
+        SubroutineEnter
+        VariableWrite [dst=std.Integer.equals#other (local)]
+        VariableWrite [dst=std.Integer.equals#this (local)]
+        if:
+            VariableRead [src=std.Integer.equals#other (local)]
+            InstanceOf [struct=std.Integer, exact=False]
+        then:
+            VariableRead [src=std.Integer.equals#this (local)]
+            FieldRead [src=std.Integer.value]
+            VariableRead [src=std.Integer.equals#other (local)]
+            FieldRead [src=std.Integer.value]
+            PrimitiveOp [op=EQ, inputs=2]
+            VariableWrite [dst=std.Integer.equals#~result (local)]
+        else:
+            PushPrimitive [value=False (boolean)]
+            VariableWrite [dst=std.Integer.equals#~result (local)]
+        VariableRead [src=std.Integer.equals#~result (local)]
+        SubroutineExit
+
+
+
+struct 'std.List' extends 'std.Object':
+    items: ref<array<ref<struct='std.Object'>>>
+
+    @constructor
+    @public
+    std.List.<ctor> (this: ref<struct='std.List'>) -> void:
+        SubroutineEnter
+        VariableWrite [dst=std.List.<ctor>#this (local)]
+        VariableRead [src=std.List.<ctor>#this (local)]
+        CallStatic [func=std.Object.<ctor>, argc=1]
+        VariableRead [src=std.List.<ctor>#this (local)]
+        PushPrimitive [value=0 (integer)]
+        ArrayOperation [op=NEW, type=ref]
+        FieldWrite [dst=std.List.items]
+        SubroutineExit
+
+    @public
+    std.List.AddLast (this: ref<struct='std.List'>, value: ref<struct='std.Object'>) -> void:
+        SubroutineEnter
+        VariableWrite [dst=std.List.AddLast#value (local)]
+        VariableWrite [dst=std.List.AddLast#this (local)]
+        VariableRead [src=std.List.AddLast#this (local)]
+        FieldRead [src=std.List.items]
+        VariableWrite [dst=std.List.AddLast#~local0 (local)]
+        VariableRead [src=std.List.AddLast#~local0 (local)]
+        ContainerGetSize
+        VariableWrite [dst=std.List.AddLast#~local1 (local)]
+        VariableRead [src=std.List.AddLast#~local0 (local)]
+        VariableRead [src=std.List.AddLast#~local1 (local)]
+        VariableRead [src=std.List.AddLast#value (local)]
+        ArrayOperation [op=SET, type=ref]
+        VariableRead [src=std.List.AddLast#~local0 (local)]
+        VariableRead [src=std.List.AddLast#~local1 (local)]
+        PushPrimitive [value=1 (integer)]
+        PrimitiveOp [op=ADD, inputs=2]
+        ArrayOperation [op=SET_SIZE, type=ref]
+        SubroutineExit
+
+    std.List.equals (this: ref<struct='std.List'>, other: ref<struct='std.Object'>) -> boolean:
+        SubroutineEnter
+        VariableWrite [dst=std.List.equals#other (local)]
+        VariableWrite [dst=std.List.equals#this (local)]
+        if:
+            VariableRead [src=std.List.equals#other (local)]
+            InstanceOf [struct=std.List, exact=False]
+        then:
+            VariableRead [src=std.List.equals#this (local)]
+            FieldRead [src=std.List.items]
+            VariableWrite [dst=std.List.equals#~local0 (local)]
+            VariableRead [src=std.List.equals#other (local)]
+            FieldRead [src=std.List.items]
+            VariableWrite [dst=std.List.equals#~local1 (local)]
+            VariableRead [src=std.List.equals#~local0 (local)]
+            ContainerGetSize
+            VariableWrite [dst=std.List.equals#~local3 (local)]
+            VariableRead [src=std.List.equals#~local3 (local)]
+            VariableRead [src=std.List.equals#~local1 (local)]
+            ContainerGetSize
+            PrimitiveOp [op=EQ, inputs=2]
+            VariableWrite [dst=std.List.equals#~result (local)]
+            PushPrimitive [value=0 (integer)]
+            VariableWrite [dst=std.List.equals#~local2 (local)]
+            while [#1]:
+                VariableRead [src=std.List.equals#~result (local)]
+                VariableRead [src=std.List.equals#~local2 (local)]
+                VariableRead [src=std.List.equals#~local3 (local)]
+                PrimitiveOp [op=LESS, inputs=2]
+                PrimitiveOp [op=AND, inputs=2]
+            body:
+                VariableRead [src=std.List.equals#~local0 (local)]
+                VariableRead [src=std.List.equals#~local2 (local)]
+                ArrayOperation [op=GET, type=ref]
+                VariableWrite [dst=std.List.equals#~local4 (local)]
+                VariableRead [src=std.List.equals#~local1 (local)]
+                VariableRead [src=std.List.equals#~local2 (local)]
+                ArrayOperation [op=GET, type=ref]
+                VariableWrite [dst=std.List.equals#~local5 (local)]
+                VariableRead [src=std.List.equals#~local4 (local)]
+                InstanceOf [struct=std.Object, exact=False]
+                VariableRead [src=std.List.equals#~local4 (local)]
+                PushPrimitive [value=0 (ref)]
+                PrimitiveOp [op=EQ, inputs=2]
+                PrimitiveOp [op=OR, inputs=2]
+                Assume
+                VariableRead [src=std.List.equals#~local5 (local)]
+                InstanceOf [struct=std.Object, exact=False]
+                VariableRead [src=std.List.equals#~local5 (local)]
+                PushPrimitive [value=0 (ref)]
+                PrimitiveOp [op=EQ, inputs=2]
+                PrimitiveOp [op=OR, inputs=2]
+                Assume
+                VariableRead [src=std.List.equals#~local4 (local)]
+                VariableRead [src=std.List.equals#~local5 (local)]
+                CallVirtual [func=std.Object.equals, argc=2]
+                VariableWrite [dst=std.List.equals#~local6 (local)]
+                VariableRead [src=std.List.equals#~local6 (local)]
+                VariableWrite [dst=std.List.equals#~result (local)]
+                VariableRead [src=std.List.equals#~local2 (local)]
+                PushPrimitive [value=1 (integer)]
+                PrimitiveOp [op=ADD, inputs=2]
+                VariableWrite [dst=std.List.equals#~local2 (local)]
+        else:
+            PushPrimitive [value=False (boolean)]
+            VariableWrite [dst=std.List.equals#~result (local)]
+        VariableRead [src=std.List.equals#~result (local)]
+        SubroutineExit
+
+    @public
+    std.List.Remove (this: ref<struct='std.List'>, index: integer) -> void:
+        SubroutineEnter
+        VariableWrite [dst=std.List.Remove#index (local)]
+        VariableWrite [dst=std.List.Remove#this (local)]
+        VariableRead [src=std.List.Remove#this (local)]
+        FieldRead [src=std.List.items]
+        VariableWrite [dst=std.List.Remove#~local0 (local)]
+        if:
+            VariableRead [src=std.List.Remove#index (local)]
+            PushPrimitive [value=0 (integer)]
+            PrimitiveOp [op=LESS, inputs=2]
+            VariableRead [src=std.List.Remove#~local0 (local)]
+            ContainerGetSize
+            VariableRead [src=std.List.Remove#index (local)]
+            PrimitiveOp [op=LEQ, inputs=2]
+            PrimitiveOp [op=OR, inputs=2]
+        then:
+            <marker: failure [metadata: None]>
+        else:
+            VariableRead [src=std.List.Remove#index (local)]
+            PushPrimitive [value=1 (integer)]
+            PrimitiveOp [op=ADD, inputs=2]
+            VariableWrite [dst=std.List.Remove#~local1 (local)]
+            VariableRead [src=std.List.Remove#~local0 (local)]
+            VariableRead [src=std.List.Remove#~local0 (local)]
+            ContainerGetSize
+            PushPrimitive [value=1 (integer)]
+            PrimitiveOp [op=SUB, inputs=2]
+            ArrayOperation [op=SET_SIZE, type=ref]
+            VariableRead [src=std.List.Remove#~local0 (local)]
+            ContainerGetSize
+            VariableRead [src=std.List.Remove#index (local)]
+            PrimitiveOp [op=SUB, inputs=2]
+            VariableWrite [dst=std.List.Remove#~local2 (local)]
+            VariableRead [src=std.List.Remove#~local0 (local)]
+            VariableRead [src=std.List.Remove#~local1 (local)]
+            VariableRead [src=std.List.Remove#~local0 (local)]
+            VariableRead [src=std.List.Remove#index (local)]
+            VariableRead [src=std.List.Remove#~local2 (local)]
+            ArrayOperation [op=COPY, type=ref]
+        SubroutineExit
+
+
+
+=================================================
+std.List.equals (this: ref<struct='std.List'>, other: ref<struct='std.Object'>) -> boolean
+[i] Exploring.
+[i] Found 1 potentially failing path(s).
+[!] Failure found: #stack-overflow
+[i] Optimizing...
+[i] Decoding state...
+[~] Structures: 11
+[~] Collections: 10 (max size = 37)
+[i] Applying reduction tactic #1...
+[i] Decoding state...
+[~] Structures: 9
+[~] Collections: 9 (max size = 33)
+[i] Applying reduction tactic #1...
+[i] Applying reduction tactic #2...
+[i] Decoding state...
+[~] Structures: 10
+[~] Collections: 9 (max size = 27)
+[i] Applying reduction tactic #1...
+[i] Decoding state...
+[~] Structures: 8
+[~] Collections: 8 (max size = 25)
+[i] Applying reduction tactic #1...
+[i] Decoding state...
+[~] Structures: 8
+[~] Collections: 7 (max size = 15)
+[i] Applying reduction tactic #1...
+[i] Decoding state...
+[~] Structures: 7
+[~] Collections: 7 (max size = 14)
+[i] Applying reduction tactic #1...
+[i] Decoding state...
+[~] Structures: 3
+[~] Collections: 3 (max size = 1)
+[i] Applying reduction tactic #1...
+[i] Decoding state...
+[~] Structures: 2
+[~] Collections: 2 (max size = 1)
+[i] Applying reduction tactic #1...
+[i] Decoding state...
+[~] Structures: 1
+[~] Collections: 1 (max size = 1)
+[i] Applying reduction tactic #2...
+[i] Refining...
+#000 : struct='std.List' = {'items': '#001'}
+#001 : array<ref> = (1) ['#000']
+[i] Saving to "./experiments/defect_detection/classes/list_spec.[#stack-overflow].state.json"...
+[i] Example: #000.equals(#000)
+[i] Evaluation time: 0:01:20

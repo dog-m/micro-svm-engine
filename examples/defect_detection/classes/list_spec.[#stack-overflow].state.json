@@ -1,0 +1,29 @@
+{
+    "global-variables": {},
+    "expected-objects": [
+        "#000"
+    ],
+    "allow-object-reuse": true,
+    "all-objects": {
+        "#000": {
+            "type": {
+                "_": "structure",
+                "name": "std.List"
+            },
+            "state": {
+                "items": "#001"
+            }
+        },
+        "#001": {
+            "type": {
+                "_": "array",
+                "item": {
+                    "_": "ref"
+                }
+            },
+            "state": [
+                "#000"
+            ]
+        }
+    }
+}
