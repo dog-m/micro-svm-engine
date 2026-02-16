@@ -35,8 +35,8 @@ class PrimitiveTypeInfo(TypeInfo):
             default_raw: object,
             convertor: Callable[[object], z3.ExprRef]
     ) -> None:
-        super().__init__(name, z3_sort, convertor(default_raw))
         assert convertor is not None
+        super().__init__(name, z3_sort, convertor(default_raw))
         self.default_raw = default_raw
         self.convertor = convertor
 

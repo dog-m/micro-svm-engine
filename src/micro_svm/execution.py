@@ -102,27 +102,30 @@ class SymRefPolicy(Enum):
 TRUE          = z3.BoolVal(True)
 FALSE         = z3.BoolVal(False)
 INVALID_SIZE  = -1
-TYPE_ID_START = '<type-id>'
-TYPE_ID_END   = '</type-id>'
 
 
-def typeid_for(name: str):
-    return f"{TYPE_ID_START}{name}{TYPE_ID_END}"
+# for type id generation
+_typeid_guid_type = integer
 
-NULL_TYPEID = z3.StringVal(typeid_for('<null>'))
-NULL_VALUE  = reference.default_value
 
-def typeid_for_array(itype: TypeInfo):
-    return z3.StringVal(typeid_for(f"array<{itype.name}>"))
+NULL_VALUE       = reference.default_value
+NULL_TYPEID_NAME = '<null>'
+NULL_TYPEID_SEQ  = z3.Unit(_typeid_guid_type.default_value)
 
-def typeid_for_set(itype: TypeInfo):
-    return z3.StringVal(typeid_for(f"set<{itype.name}>"))
+def typeid_name_for_structure(name: str) -> str:
+    return f"<type-id>{name}</type-id>"
 
-def typeid_for_map(ktype: TypeInfo, vtype: TypeInfo):
-    return z3.StringVal(typeid_for(f"map<{ktype.name},{vtype.name}>"))
+def typeid_name_for_array(itype: TypeInfo) -> str:
+    return f"array<{itype.name}>"
 
-def typeid_for_transform(ktype: TypeInfo, vtype: TypeInfo):
-    return z3.StringVal(typeid_for(f"transform<{ktype.name},{vtype.name}>"))
+def typeid_name_for_set(itype: TypeInfo) -> str:
+    return f"set<{itype.name}>"
+
+def typeid_name_for_map(ktype: TypeInfo, vtype: TypeInfo) -> str:
+    return f"map<{ktype.name},{vtype.name}>"
+
+def typeid_name_for_transform(ktype: TypeInfo, vtype: TypeInfo) -> str:
+    return f"transform<{ktype.name},{vtype.name}>"
 
 
 
@@ -177,14 +180,46 @@ class SymbolicStateMachine:
         self._versioned_symbols: dict[str, VersionedVariable] = {}
         self._check_cache = {} if check_cache is None else check_cache
         self._last_ref = 0
+        self._typeid_seq_type = TypeInfo('micro-svm:type-id', z3.SeqSort(_typeid_guid_type.z3_sort), None)
+        self._typeid_cache__to_sequence: dict[str, z3.SeqRef] = {}
+        self._typeid_cache__to_name: dict[int, str] = {}
         self._array_pools: dict[str, VersionedVariable] = {}
         self._collection_sizes = VersionedVariable(VariableInfo('@collection-sizes', array(integer)))
-        self._object_types = VersionedVariable(VariableInfo('@object-types', array(string)))
+        self._object_types = VersionedVariable(VariableInfo('@object-types', array(self._typeid_seq_type)))
         self._special_pools: dict[str, VersionedVariable] = {}
         self._th_resolver = th_resolver
         self._fault_flag = VersionedVariable(VariableInfo('@fault-flag', boolean))
         self._last_exception = VersionedVariable(VariableInfo('@last-exception', reference))
-        self._known_types = VersionedVariable(VariableInfo('@known-types', string))
+        # self._known_types = VersionedVariable(VariableInfo('@known-types', string))  # TODO: type unions
+
+
+    # === [type id management] ==================================
+
+
+    def _typeid_to_seq(self, id_name: str) -> z3.SeqRef:
+        if (res := self._typeid_cache__to_sequence.get(id_name)) is None:
+            # "NULL" is the "zero" one
+            guid = len(self._typeid_cache__to_sequence) + 1
+            res = z3.Unit(_typeid_guid_type.wrap_primitive(guid))
+
+            self._typeid_cache__to_sequence[id_name] = res
+            self._typeid_cache__to_name[guid]        = id_name
+
+        return res
+
+
+    def typeid_sequence_to_names(self, id_seq: z3.SeqRef) -> Iterable[str]:
+        res: set[str] = set()
+
+        for i in range(len(self._typeid_cache__to_name)):
+            if z3.is_int_value(guid := z3.simplify(id_seq[i])):
+                # there might be some non-existing GUIDs used by the solver
+                if (name := self._typeid_cache__to_name.get(guid.as_long())) is not None:
+                    res.add(name)
+            else:
+                break
+
+        return res
 
 
     # === [initialization] ==================================
@@ -196,7 +231,7 @@ class SymbolicStateMachine:
 
         # prepare array lengths table and a table for retrieving simple object type info
         self._expressions.extend([
-            self.array_get(self._object_types, NULL_VALUE) == NULL_TYPEID,
+            self.array_get(self._object_types, NULL_VALUE) == NULL_TYPEID_SEQ,
             self.array_get(self._collection_sizes, NULL_VALUE) == INVALID_SIZE,
             self.read(self._fault_flag) == FALSE,
             self.read(self._last_exception) == NULL_VALUE,
@@ -210,14 +245,15 @@ class SymbolicStateMachine:
             _ = self.read(vv)
             self._array_pools[pool_name] = vv
 
+        # TODO: type unions
         # prepare all structure types
-        known_types: list[str] = []
-        for sinfo in self.context.structures.values():
-            unified_id = self.get_unified_type_id_for(sinfo)
-            known_types.append(unified_id)
-        self._expressions.append(
-            self.read(self._known_types) == self._wrap_primitive('<type-separator>'.join(known_types), string)
-        )
+        # known_types: list[str] = []
+        # for sinfo in self.context.structures.values():
+        #     unified_id = self.get_unified_type_id_for(sinfo)
+        #     known_types.append(unified_id)
+        # self._expressions.append(
+        #     self.read(self._known_types) == self._wrap_primitive('<type-separator>'.join(known_types), string)
+        # )
 
         # other symbols from the provided context
 
@@ -294,7 +330,7 @@ class SymbolicStateMachine:
         arr_ref = self.read(vv)
         self._expressions.extend([
             arr_ref == self.new_reference(),
-            self.array_get(self._object_types, arr_ref) == typeid_for_array(t),
+            self.array_get(self._object_types, arr_ref) == self._typeid_to_seq(typeid_name_for_array(t)),
             self.array_get(self._collection_sizes, arr_ref) == len(value),
         ])
 
@@ -312,7 +348,7 @@ class SymbolicStateMachine:
         set_ref = self.read(vv)
         self._expressions.extend([
             set_ref == self.new_reference(),
-            self.array_get(self._object_types, set_ref) == typeid_for_set(set_type.item_type),
+            self.array_get(self._object_types, set_ref) == self._typeid_to_seq(typeid_name_for_set(set_type.item_type)),
             self.array_get(self._collection_sizes, set_ref) == len(value),
         ])
 
@@ -364,7 +400,7 @@ class SymbolicStateMachine:
         map_ref = self.read(vv)
         self._expressions.extend([
             map_ref == self.new_reference(),
-            self.array_get(self._object_types, map_ref) == typeid_for_map(map_type.key_type, map_type.value_type),
+            self.array_get(self._object_types, map_ref) == self._typeid_to_seq(typeid_name_for_map(map_type.key_type, map_type.value_type)),
             self.array_get(self._collection_sizes, map_ref) == len(value),
         ])
 
@@ -420,7 +456,7 @@ class SymbolicStateMachine:
         transform_ref = self.read(vv)
         self._expressions.extend([
             transform_ref == self.new_reference(),
-            self.array_get(self._object_types, transform_ref) == typeid_for_transform(type.key_type, type.value_type),
+            self.array_get(self._object_types, transform_ref) == self._typeid_to_seq(typeid_name_for_transform(type.key_type, type.value_type)),
             self.array_get(self._collection_sizes, transform_ref) == len(value),
         ])
 
@@ -788,7 +824,7 @@ class SymbolicStateMachine:
     def array_ref_init(self, dst: z3.ExprRef, size: z3.ExprRef, item_type: PrimitiveTypeInfo) -> None:
         self._expressions.extend([
             # specify the size and type
-            self.array_get(self._object_types, dst) == typeid_for_array(item_type),
+            self.array_get(self._object_types, dst) == self._typeid_to_seq(typeid_name_for_array(item_type)),
             self.array_get(self._collection_sizes, dst) == size,
         ])
         self._register_new_array(self._last_ref, item_type)
@@ -927,7 +963,7 @@ class SymbolicStateMachine:
 
         self._expressions.extend([
             # specify the size and type
-            self.array_get(self._object_types, dst) == typeid_for_set(item_type),
+            self.array_get(self._object_types, dst) == self._typeid_to_seq(typeid_name_for_set(item_type)),
             self.array_get(self._collection_sizes, dst) == 0,
 
             # make the initial assumption - there are no elements in this set
@@ -1237,7 +1273,7 @@ class SymbolicStateMachine:
 
         self._expressions.extend([
             # specify the size and type
-            self.array_get(self._object_types, dst) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, dst) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
             self.array_get(self._collection_sizes, dst) == 0,
 
             # make the initial assumption - there are no key-value pairs in this map
@@ -1630,7 +1666,7 @@ class SymbolicStateMachine:
 
         self._expressions.extend([
             # specify the size and type
-            self.array_get(self._object_types, dst) == typeid_for_transform(*kv_type),
+            self.array_get(self._object_types, dst) == self._typeid_to_seq(typeid_name_for_transform(*kv_type)),
             self.array_get(self._collection_sizes, dst) == INVALID_SIZE,
         ])
         if kv_type[1] is boolean:
@@ -1691,19 +1727,13 @@ class SymbolicStateMachine:
         return res
 
 
-    def get_unified_type_id_for(self, sinfo: StructureTypeInfo) -> str:
-        names = self.get_type_names_for_object(sinfo)
-        return typeid_for('<&>'.join(names))
-
-
-    def object_get_type_seq(self, ref: z3.ExprRef) -> z3.ExprRef:
-        return self.array_get(self._object_types, ref)
-
-
-    def object_types_to_seq(self, types: list[str]) -> str:
-        return ''.join([
-            typeid_for(name) for name in types
-        ])
+    def object_types_to_seq(self, types: list[str]) -> z3.SeqRef:
+        return z3.simplify(
+            z3.Concat(
+                z3.Empty(self._typeid_seq_type.z3_sort),
+                *[self._typeid_to_seq(typeid_name_for_structure(struct)) for struct in types],
+            ),
+        )
 
 
     def object_ref_init(self, ref: z3.ExprRef, structure_name: str) -> None:
@@ -1720,23 +1750,20 @@ class SymbolicStateMachine:
 
 
     def object_is_instance_of(self, ref: z3.ExprRef, struct: str, exact: bool) -> z3.ExprRef:
-        full_seq = self.object_get_type_seq(ref)
+        full_seq = self.array_get(self._object_types, ref)
         sinfo = self.context.structures[struct]
 
         if exact:
             types = self.get_type_names_for_object(sinfo)
             sub_seq = self.object_types_to_seq(types)
-            return full_seq == z3.StringVal(sub_seq)
+            return full_seq == sub_seq
 
         else:
             sub_seq = self.object_types_to_seq([sinfo.structure_name])
-            validation = z3.Contains(full_seq, z3.StringVal(sub_seq))
+            validation = z3.Contains(full_seq, sub_seq)
 
             if not self.config.allow_type_unions and False:
-                # FIXME: this does not seem to work
-                full_seq = self.read(self._known_types)
-                sub_seq = self.get_unified_type_id_for(sinfo)
-                validation = validation & z3.Contains(full_seq, z3.StringVal(sub_seq))
+                raise NotImplementedError()  # TODO: type unions
 
             return validation
 
@@ -1830,7 +1857,7 @@ class SymbolicStateMachine:
         dst  = self.simplify(dst)
         size = self.simplify(size)
         self._safeguard(
-            self.array_get(self._object_types, dst) == typeid_for_array(item_type),
+            self.array_get(self._object_types, dst) == self._typeid_to_seq(typeid_name_for_array(item_type)),
         )
         self.array_set(self._collection_sizes, dst, size)
 
@@ -1840,7 +1867,7 @@ class SymbolicStateMachine:
         src   = self.simplify(src)
         index = self.simplify(index)
         self._safeguard(
-            self.array_get(self._object_types, src) == typeid_for_array(item_type),
+            self.array_get(self._object_types, src) == self._typeid_to_seq(typeid_name_for_array(item_type)),
         )
         res = self.array_ref_get(src, index, item_type)
         self.push(res)
@@ -1852,7 +1879,7 @@ class SymbolicStateMachine:
         index = self.simplify(index)
         value = self.simplify(value)
         self._safeguard(
-            self.array_get(self._object_types, dst) == typeid_for_array(item_type),
+            self.array_get(self._object_types, dst) == self._typeid_to_seq(typeid_name_for_array(item_type)),
         )
         self.array_ref_set(dst, index, value, item_type)
 
@@ -1866,7 +1893,7 @@ class SymbolicStateMachine:
         count     = self.simplify(count)
 
         if item_type is not None:
-            type_id = typeid_for_array(item_type)
+            type_id = self._typeid_to_seq(typeid_name_for_array(item_type))
             self._safeguard(
                 self.array_get(self._object_types, src) == type_id,
                 self.array_get(self._object_types, dst) == type_id,
@@ -1883,7 +1910,7 @@ class SymbolicStateMachine:
         b_index = self.simplify(b_index)
         count   = self.simplify(count)
 
-        type_id = typeid_for_array(item_type)
+        type_id = self._typeid_to_seq(typeid_name_for_array(item_type))
         self._safeguard(
             self.array_get(self._object_types, a) == type_id,
             self.array_get(self._object_types, b) == type_id,
@@ -2026,9 +2053,9 @@ class SymbolicStateMachine:
         ref = self.simplify(ref)
         self._safeguard(
             # validation against "double free" faults
-            self.array_get(self._object_types, ref) != NULL_TYPEID,
+            self.array_get(self._object_types, ref) != NULL_TYPEID_SEQ,
         )
-        self.array_set(self._object_types, ref, NULL_TYPEID)
+        self.array_set(self._object_types, ref, NULL_TYPEID_SEQ)
         self.array_set(self._collection_sizes, ref, INVALID_SIZE)
 
 
@@ -2043,7 +2070,7 @@ class SymbolicStateMachine:
         ref = self.simplify(ref)
         origin_class = self.get_object_field_origin(inst.source_structure_name, inst.source_field_name)
         self._safeguard(
-            self.array_get(self._object_types, ref) != NULL_TYPEID,
+            self.array_get(self._object_types, ref) != NULL_TYPEID_SEQ,
         )
         res = self.object_field_read(ref, origin_class, inst.source_field_name)
         self.push(res)
@@ -2055,7 +2082,7 @@ class SymbolicStateMachine:
         value = self.simplify(value)
         origin_class = self.get_object_field_origin(inst.destination_structure_name, inst.destination_field_name)
         self._safeguard(
-            self.array_get(self._object_types, ref) != NULL_TYPEID,
+            self.array_get(self._object_types, ref) != NULL_TYPEID_SEQ,
         )
         self.object_field_write(ref, origin_class, inst.destination_field_name, value)
 
@@ -2077,7 +2104,7 @@ class SymbolicStateMachine:
         ref  = self.simplify(ref)
         item = self.simplify(item)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_set(item_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_set(item_type)),
         )
         res = self.set_ref_contains(ref, item, item_type)
         self.push(res)
@@ -2087,7 +2114,7 @@ class SymbolicStateMachine:
         ref = self.pull()
         ref = self.simplify(ref)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_set(item_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_set(item_type)),
         )
         value = self.set_ref_get_any(ref, item_type)
         self.push(value)
@@ -2098,7 +2125,7 @@ class SymbolicStateMachine:
         ref   = self.simplify(ref)
         value = self.simplify(value)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_set(item_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_set(item_type)),
         )
         self.set_ref_add(ref, value, item_type)
 
@@ -2108,7 +2135,7 @@ class SymbolicStateMachine:
         ref  = self.simplify(ref)
         item = self.simplify(item)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_set(item_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_set(item_type)),
         )
         self.set_ref_remove(ref, item, item_type)
 
@@ -2119,7 +2146,7 @@ class SymbolicStateMachine:
         src_b = self.simplify(src_b)
         dst   = self.simplify(dst)
 
-        type_id = typeid_for_set(item_type)
+        type_id = self._typeid_to_seq(typeid_name_for_set(item_type))
         self._safeguard(
             self.array_get(self._object_types, src_a) == type_id,
             self.array_get(self._object_types, src_b) == type_id,
@@ -2135,7 +2162,7 @@ class SymbolicStateMachine:
         src_b = self.simplify(src_b)
         dst   = self.simplify(dst)
 
-        type_id = typeid_for_set(item_type)
+        type_id = self._typeid_to_seq(typeid_name_for_set(item_type))
         self._safeguard(
             self.array_get(self._object_types, src_a) == type_id,
             self.array_get(self._object_types, src_b) == type_id,
@@ -2150,7 +2177,7 @@ class SymbolicStateMachine:
         src_a = self.simplify(src_a)
         src_b = self.simplify(src_b)
 
-        type_id = typeid_for_set(item_type)
+        type_id = self._typeid_to_seq(typeid_name_for_set(item_type))
         self._safeguard(
             self.array_get(self._object_types, src_a) == type_id,
             self.array_get(self._object_types, src_b) == type_id,
@@ -2178,7 +2205,7 @@ class SymbolicStateMachine:
         ref = self.simplify(ref)
         key = self.simplify(key)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
         )
         res = self.map_ref_get(ref, key, kv_type)
         self.push(res)
@@ -2190,7 +2217,7 @@ class SymbolicStateMachine:
         key   = self.simplify(key)
         value = self.simplify(value)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
         )
         self.map_ref_set(ref, key, value, kv_type)
 
@@ -2200,7 +2227,7 @@ class SymbolicStateMachine:
         ref = self.simplify(ref)
         key = self.simplify(key)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
         )
         self.map_ref_remove_key(ref, key, kv_type)
 
@@ -2210,7 +2237,7 @@ class SymbolicStateMachine:
         ref = self.simplify(ref)
         key = self.simplify(key)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
         )
         res = self.map_ref_has_key(ref, key, kv_type)
         self.push(res)
@@ -2221,7 +2248,7 @@ class SymbolicStateMachine:
         ref   = self.simplify(ref)
         value = self.simplify(value)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
         )
         res = self.map_ref_has_value(ref, value, kv_type)
         self.push(res)
@@ -2233,7 +2260,7 @@ class SymbolicStateMachine:
         key   = self.simplify(key)
         value = self.simplify(value)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
         )
         res = self.map_ref_has_pair(ref, key, value, kv_type)
         self.push(res)
@@ -2243,7 +2270,7 @@ class SymbolicStateMachine:
         ref = self.pull()
         ref = self.simplify(ref)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
         )
         key, _ = self.map_ref_get_any_kv(ref, kv_type)
         self.push(key)
@@ -2253,7 +2280,7 @@ class SymbolicStateMachine:
         ref = self.pull()
         ref = self.simplify(ref)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_map(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_map(*kv_type)),
         )
         _, value = self.map_ref_get_any_kv(ref, kv_type)
         self.push(value)
@@ -2265,7 +2292,7 @@ class SymbolicStateMachine:
         src_b = self.simplify(src_b)
         dst   = self.simplify(dst)
 
-        type_id = typeid_for_map(*kv_type)
+        type_id = self._typeid_to_seq(typeid_name_for_map(*kv_type))
         self._safeguard(
             self.array_get(self._object_types, src_a) == type_id,
             self.array_get(self._object_types, src_b) == type_id,
@@ -2281,7 +2308,7 @@ class SymbolicStateMachine:
         src_b = self.simplify(src_b)
         dst   = self.simplify(dst)
 
-        type_id = typeid_for_map(*kv_type)
+        type_id = self._typeid_to_seq(typeid_name_for_map(*kv_type))
         self._safeguard(
             self.array_get(self._object_types, src_a) == type_id,
             self.array_get(self._object_types, src_b) == type_id,
@@ -2296,7 +2323,7 @@ class SymbolicStateMachine:
         src_a = self.simplify(src_a)
         src_b = self.simplify(src_b)
 
-        type_id = typeid_for_map(*kv_type)
+        type_id = self._typeid_to_seq(typeid_name_for_map(*kv_type))
         self._safeguard(
             self.array_get(self._object_types, src_a) == type_id,
             self.array_get(self._object_types, src_b) == type_id,
@@ -2324,7 +2351,7 @@ class SymbolicStateMachine:
         ref = self.simplify(ref)
         key = self.simplify(key)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_transform(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_transform(*kv_type)),
         )
         res = self.transform_ref_get(ref, key, kv_type)
         self.push(res)
@@ -2336,7 +2363,7 @@ class SymbolicStateMachine:
         key   = self.simplify(key)
         value = self.simplify(value)
         self._safeguard(
-            self.array_get(self._object_types, ref) == typeid_for_transform(*kv_type),
+            self.array_get(self._object_types, ref) == self._typeid_to_seq(typeid_name_for_transform(*kv_type)),
         )
         self.transform_ref_set(ref, key, value, kv_type)
 

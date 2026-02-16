@@ -193,15 +193,15 @@ class ModelDecoder:
         container_types = self._container_types
         if container_types is None:
             container_types = self._container_types = {}
-            for id_gen, type_gen in [(typeid_for_array, array), (typeid_for_set, set_of)]:
+            for id_gen, type_gen in [(typeid_name_for_array, array), (typeid_name_for_set, set_of)]:
                 for item_type in PRIMITIVE_TYPES:
-                    id = id_gen(item_type).py_value()
+                    id = id_gen(item_type)
                     container_types[id] = type_gen(item_type)
 
-            for id_gen, type_gen in [(typeid_for_map, map_of), (typeid_for_transform, transform_of)]:
+            for id_gen, type_gen in [(typeid_name_for_map, map_of), (typeid_name_for_transform, transform_of)]:
                 for key_type in PRIMITIVE_TYPES:
                     for value_type in PRIMITIVE_TYPES:
-                        id = id_gen(key_type, value_type).py_value()
+                        id = id_gen(key_type, value_type)
                         container_types[id] = type_gen(key_type, value_type)
 
         return container_types
@@ -213,10 +213,9 @@ class ModelDecoder:
             if type is not None:
                 return type
 
-        type_id = z3.Select(self.machine.read(self.machine._object_types), object_ref)
-        type_id: str = self.decode_value(type_id, string)
-        # there might be some malformed nonsense like "<type-id>std.Object</type-id>B<type-id>std.List</type-id>A"
-        # or being incomplete and/or resulting in a non-existing type that is a union of other types
+        type_id: z3.SeqRef = z3.Select(self.machine.read(self.machine._object_types), object_ref)
+        type_id: z3.SeqRef = self.machine._last_model.eval(type_id, model_completion=True)
+        type_id: set[str]  = self.machine.typeid_sequence_to_names(type_id)
 
         # check basic container types
         for container_type_id, type in self._get_basic_container_types().items():
@@ -226,7 +225,7 @@ class ModelDecoder:
         candidate: TypeInfo | None = None
         candidate_parent_count: int = -1
         for sinfo in self.ctx.structures.values():
-            if typeid_for(sinfo.structure_name) in type_id:
+            if typeid_name_for_structure(sinfo.structure_name) in type_id:
                 pcount = len(self.th_resolver.get_all_parents_of(sinfo.structure_name))
                 if pcount > candidate_parent_count:
                     candidate = sinfo
