@@ -1,5 +1,10 @@
 @echo off
 
-pip install -U dist/micro_svm-1.0.0-py3-none-any.whl
+for %%f in (dist\*.whl) do (
+    pip install -U "%%f"
+    pause
+    goto :EOF
+)
 
+echo [ERROR] Build the project first!
 pause

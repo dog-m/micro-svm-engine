@@ -4,19 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "micro-svm"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="Mikhail Onischuck" },
 ]
-description = "Symbolic Virtual Machine for defect detection"
+description = "Simple symbolic Virtual Machine in Python and Z3"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
+dependencies = [
+  "z3-solver>=4.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/dog-m/micro-svm-engine"
@@ -30,5 +34,4 @@ where = ["src"]
 # addopts = ["-ra", "-q"]
 # testpaths = [
 #     "tests",
-#     "integration",
 # ]

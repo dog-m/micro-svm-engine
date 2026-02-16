@@ -1,2 +1,2 @@
 # ==4.14.1 worked fine
-z3-solver
+z3-solver>=4.0
