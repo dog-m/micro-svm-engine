@@ -19,7 +19,7 @@ classifiers = [
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 dependencies = [
-  "z3-solver>=4.0",
+  "z3-solver>=4.0.0,<4.15",
 ]
 
 [project.urls]
