@@ -7,7 +7,7 @@ from micro_svm.global_context import CONTEXT as spec, show_compiled_specs
 from micro_svm.serialization import save_state_to_file
 
 
-from . import list_spec
+import list_spec
 
 
 
@@ -83,5 +83,6 @@ def main() -> None:
 
 
 if __name__ == '__main__':
+    # not doing anything fancy here - this script would be run from a dedicated batch file to catch traces for any errors
     main()
 

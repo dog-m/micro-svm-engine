@@ -1,5 +1,6 @@
 @echo off
 
+cd ..
 for %%f in (dist\*.whl) do (
     pip install -U "%%f"
     pause
