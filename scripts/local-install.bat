@@ -1,6 +1,7 @@
 @echo off
 
 cd ..
+python -m pip uninstall -y micro-svm
 for %%f in (dist\*.whl) do (
     pip install -U "%%f"
     pause

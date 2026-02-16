@@ -26,8 +26,12 @@ dependencies = [
 Homepage = "https://github.com/dog-m/micro-svm-engine"
 Issues = "https://github.com/dog-m/micro-svm-engine/issues"
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["docs", "tests", "micro_svm.tests*"]
 
 # [tool.pytest]
 # minversion = "9.0"
