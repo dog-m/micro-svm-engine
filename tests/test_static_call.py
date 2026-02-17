@@ -41,15 +41,15 @@ th_resolver.analyze_structure_hierarchy()
 EXPRESSIONS = [
     '64 == (#0)<main>#~local0:0',
     '5 == (#1)foo#~result:1',
-    '(#0)<main>#~local1:1 == (#1)foo#~result:1',
+    '5 == (#0)<main>#~local1:1',             # <=> '(#0)<main>#~local1:1 == (#1)foo#~result:1'
     '7 == (#1)bar#~result:1',
-    '(#0)<main>#~local2:1 == (#1)bar#~result:1',
-    '(#0)<main>#~local0:0 == 11*(#0)<main>#~local1:1 + 2 + (#0)<main>#~local2:1',
+    '7 == (#0)<main>#~local2:1',             # <=> '(#0)<main>#~local2:1 == (#1)bar#~result:1'
+    '(#0)<main>#~local0:0 == 11*5 + 2 + 7',  # <=> '(#0)<main>#~local0:0 == 11*(#0)<main>#~local1:1 + 2 + (#0)<main>#~local2:1',
     '5 == (#1)foo#~result:2',
-    '(#0)<main>#~local3:1 == (#1)foo#~result:2',
+    '5 == (#0)<main>#~local3:1',             # <=> '(#0)<main>#~local3:1 == (#1)foo#~result:2',
     '7 == (#1)bar#~result:2',
-    '(#0)<main>#~local4:1 == (#1)bar#~result:2',
-    '11*(#0)<main>#~local3:1 + 2 + (#0)<main>#~local4:1 == (#0)<main>#~local0:0',
+    '7 == (#0)<main>#~local4:1',             # <=> '(#0)<main>#~local4:1 == (#1)bar#~result:2',
+    '11*5 + 2 + 7 == (#0)<main>#~local0:0',  # <=> '11*(#0)<main>#~local3:1 + 2 + (#0)<main>#~local4:1 == (#0)<main>#~local0:0',
 ]
 
 
@@ -58,6 +58,7 @@ EXPRESSIONS = [
 
 class SC(unittest.TestCase):
     def test_static_call(self):
+        self.maxDiff = None
         paths: list[ProgramPath] = []
 
         def main(cc: CompilerContext) -> None:

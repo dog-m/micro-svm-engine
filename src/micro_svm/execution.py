@@ -191,6 +191,7 @@ class SymbolicStateMachine:
         self._fault_flag = VersionedVariable(VariableInfo('@fault-flag', boolean))
         self._last_exception = VersionedVariable(VariableInfo('@last-exception', reference))
         # self._known_types = VersionedVariable(VariableInfo('@known-types', string))  # TODO: type unions
+        self._last_literal_value: dict[str, z3.ExprRef] = {}  # variable -> last literal value
 
 
     # === [type id management] ==================================
@@ -598,9 +599,9 @@ class SymbolicStateMachine:
                             return
 
                     solver.assert_and_track(expr, tracker_format.format(i))
-                except:
+                except Exception as e:
                     print("[!] PROBLEMATIC EXPRESSION:", expr, flush=True)
-                    raise
+                    raise e
 
         res = None
         self._last_model = None
@@ -1826,13 +1827,20 @@ class SymbolicStateMachine:
 
     def visit_instruction_VariableRead(self, inst: VariableRead) -> None:
         src = self.to_versioned(inst.source_name, is_local=inst.source_is_local)
-        self.push(self.read(src))
+        if (last_value := self._last_literal_value.get(src.variable.name)) is not None:
+            src = last_value
+        else:
+            src = self.read(src)
+        self.push(src)
 
 
     def visit_instruction_VariableWrite(self, inst: VariableWrite) -> None:
-        value = self.pull()
+        value = self.simplify(self.pull())
         dst = self.to_versioned(inst.destination_name, is_local=inst.destination_is_local)
         self.write(dst, value)
+        # caching for literal substitution during reading
+        self._last_literal_value[dst.variable.name] = value if z3.z3util.is_expr_val(value) else None
+        # TODO: apply the same idea to "fault flag" and "last exception"
 
 
     def visit_instruction_ContainerGetSize(self, _: ContainerGetSize) -> None:
