@@ -46,6 +46,7 @@ pip install micro-svm
 - Little to no type conversion. The implementation relies heavily on Z3 in that aspect.
 - No support for IEEE floats.
 - Eager function/method execution. For every discovered program path, the machine checks if the whole path can be executed or not.
+  For example, when processing `x = parse_bool(input) or panic()` or similar expression the `panic()` call would **always** be visited unless modelled otherwise in the user specification.
 - Very crude fault handling for certain language- and runtime-specific edge-cases. It is only possible to:
   - not allowing any fault to occur during a path's execution (default),
   - check if they *might* have happened (i.e., using `CompilerContext.get_fault_status/clear_fault_status`),
