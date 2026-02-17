@@ -53,6 +53,17 @@ pip install micro-svm
   - ignore faulty operations.
 - Exceptions regarding null-dereferencing, invalid array indexing and alike cannot be raised and caught automatically. It is advised to use `CompilerContext.get_fault_status` and `throw` to raise a suitable exception object. Note that `get_fault_status` is unhelpful unless `SymbolicStateMachine.fault_mode` is set to `STORE`.
 
+## Cite
+
+```text
+@software{microsvm2026,
+  title={Micro-SVM: A simple symbolic VM in Python and Z3},
+  author={Mikhail Onischuck},
+  year={2026},
+  url={https://github.com/dog-m/micro-svm-engine}
+}
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
