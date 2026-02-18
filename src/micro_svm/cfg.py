@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Callable, final
 
 from .instructions import Instruction
+from .types import PrimitiveTypeInfo
+
+#
 
 EXCEPTION_MATCHER_ALL = '*'
 
@@ -320,6 +323,50 @@ class Throw(Node):
 
     def clone_self(self, dup_instructions: bool = False):
         return Throw()
+
+
+@final
+class Switch(Node):
+    """
+    TODO: switch node (use 'Distinct(...)' for 'else' case).
+    """
+    __slots__ = ('source', 'value_type', 'value_handlers', 'else_handler')
+
+    def __init__(self, source: Node, value_type: PrimitiveTypeInfo) -> None:
+        assert source is not None
+        assert value_type.is_primitive()
+        super().__init__()
+        self.source = source
+        self.value_type = value_type
+        self.value_handlers: dict[str | float | int | bool | None, Node] = {}
+        self.else_handler: Node | None = None
+
+    def clone_self(self, dup_instructions: bool = False):
+        node = Switch(self.source.clone(dup_instructions), self.value_type)
+        for value, handler in self.value_handlers.items():
+            node.value_handlers[value] = handler.clone(dup_instructions)
+        node.else_handler = self.else_handler
+        return node
+
+
+@final
+class TypeSwitch(Node):
+    """
+    TODO: type switch node.
+    """
+    __slots__ = ('source', 'type_handlers')
+
+    def __init__(self, source: Node) -> None:
+        assert source is not None
+        super().__init__()
+        self.source = source
+        self.type_handlers: dict[str, Node] = {}  # 'key' is a structure type name
+
+    def clone_self(self, dup_instructions: bool = False):
+        node = TypeSwitch(self.source.clone(dup_instructions))
+        for struct_name, handler in self.type_handlers.items():
+            node.type_handlers[struct_name] = handler.clone(dup_instructions)
+        return node
 
 
 
