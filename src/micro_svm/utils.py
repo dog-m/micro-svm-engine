@@ -6,7 +6,6 @@ from .global_context import GlobalContext
 from .types import TypeInfo, ref
 
 
-
 def simple_program(ctx: GlobalContext, implementation: Callable[[CompilerContext], None]) -> CompiledSubroutine:
     cc = CompilerContext()
 

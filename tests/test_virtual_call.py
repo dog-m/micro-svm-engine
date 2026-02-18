@@ -2,12 +2,11 @@ import unittest
 
 from micro_svm.compiler import CompilerContext
 from micro_svm.execution import SymbolicStateMachine
-from micro_svm.exploration import *
+from micro_svm.exploration import PathEnumerator, Program, ProgramPath
 from micro_svm.global_context import GlobalContext
-from micro_svm.utils import simple_program, register_empty_constructor
 from micro_svm.type_hierarchy import TypeHierarchyResolver
-from micro_svm.types import *
-
+from micro_svm.types import integer, ref, reference
+from micro_svm.utils import register_empty_constructor, simple_program
 
 # === prerequisites ===
 

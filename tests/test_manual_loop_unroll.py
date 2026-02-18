@@ -2,11 +2,9 @@ import unittest
 
 from micro_svm.cfg import ProgramVisualiser
 from micro_svm.compiler import CompilerContext
-from micro_svm.exploration import Program, ProgramPath, PathEnumerator
+from micro_svm.exploration import PathEnumerator, Program, ProgramPath
 from micro_svm.global_context import GlobalContext
 from micro_svm.type_hierarchy import TypeHierarchyResolver
-from micro_svm.types import *
-
 
 # === prerequisites ===
 

@@ -3,10 +3,9 @@ exclude = [
   ".git",
   ".ruff_cache",
   ".vscode",
-  "docs",
-  "examples",
-  "notes",
   "__pycache__",
+  "docs",
+  "notes",
 ]
 line-length = 120
 indent-width = 4
@@ -30,12 +29,7 @@ select = [
   "I002",
 ]
 ignore = [
-  "F403",
-  "F405",
-  "F821",
-  "F841",
-
-  "I001",
+  "F405",  # undefined from star imports
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

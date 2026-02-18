@@ -1,13 +1,30 @@
-from typing import final, Iterable, cast
 import os
+from typing import Callable, Iterable, cast, final
+
 import z3
 
-from .cfg import *
 from .descriptors import VariableInfo
 from .global_context import GlobalContext
-from .instructions import *
+from .instructions import *  # noqa: F403
 from .type_hierarchy import TypeHierarchyResolver
-
+from .types import (
+    PRIMITIVE_TYPES,
+    ArrayTypeInfo,
+    KnownReferenceTypeInfo,
+    MapTypeInfo,
+    SetTypeInfo,
+    StructureTypeInfo,
+    TransformTypeInfo,
+    TypeInfo,
+    array,
+    boolean,
+    integer,
+    map_of,
+    ref,
+    reference,
+    set_of,
+    transform_of,
+)
 
 print(f"Z3 version: {z3.get_version_string()}")
 
@@ -150,6 +167,7 @@ class MachineConfig:
             #'propagate_eq': True,
         }
         self.symbolic_ref_policy = SymRefPolicy.CLOSED
+        self.literal_substitution_enabled = True
 
 
 
@@ -1827,7 +1845,7 @@ class SymbolicStateMachine:
 
     def visit_instruction_VariableRead(self, inst: VariableRead) -> None:
         src = self.to_versioned(inst.source_name, is_local=inst.source_is_local)
-        if (last_value := self._last_literal_value.get(src.variable.name)) is not None:
+        if self.config.literal_substitution_enabled and (last_value := self._last_literal_value.get(src.variable.name)) is not None:
             src = last_value
         else:
             src = self.read(src)

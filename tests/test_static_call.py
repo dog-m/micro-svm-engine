@@ -1,13 +1,14 @@
 import unittest
 
+import z3
+
 from micro_svm.compiler import CompilerContext
 from micro_svm.execution import SymbolicStateMachine
-from micro_svm.exploration import *
+from micro_svm.exploration import PathEnumerator, Program, ProgramPath
 from micro_svm.global_context import GlobalContext
-from micro_svm.utils import simple_program
 from micro_svm.type_hierarchy import TypeHierarchyResolver
-from micro_svm.types import *
-
+from micro_svm.types import integer
+from micro_svm.utils import simple_program
 
 # === prerequisites ===
 

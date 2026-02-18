@@ -1,11 +1,25 @@
-from typing import final, Iterable, cast
+from typing import Iterable, cast, final
 
-from .instructions import *
-from .cfg import *
+from .cfg import *  # noqa: F403
 from .descriptors import CompiledSubroutine
 from .global_context import GlobalContext
+from .instructions import (
+    Assume,
+    ClearStackToBoundary,
+    ControlPoint,
+    Copy,
+    ExceptionRead,
+    InstanceOf,
+    Pop,
+    PrimitiveOp,
+    PrimitiveOps,
+    PushPrimitive,
+    PushStackBoundary,
+    StackBoundary,
+    SubroutineExit,
+)
 from .type_hierarchy import TypeHierarchyResolver
-
+from .types import reference
 
 
 @final

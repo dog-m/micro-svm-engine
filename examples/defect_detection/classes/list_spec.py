@@ -1,7 +1,8 @@
-from micro_svm.types import *
 from micro_svm.compiler import CompilerContext
 from micro_svm.global_context import CONTEXT as spec
+from micro_svm.types import *  # noqa: F403
 
+#
 
 spec.register_structure(
     'std.Object', [], [

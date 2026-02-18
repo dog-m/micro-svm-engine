@@ -1,10 +1,9 @@
-from typing import final, Callable
+from typing import Callable, final
 
-from .descriptors import *
-from .compiler import CompilerContext
-from .types import FieldInfo, StructureTypeInfo
 from .cfg import ProgramVisualiser
-
+from .compiler import CompilerContext
+from .descriptors import FunctionInfo, InitializerValueType, VariableInfo, structure_member_to_signature
+from .types import FieldInfo, StructureTypeInfo, TypeInfo
 
 TAG_GLOBAL_VARIABLE = '$global'
 

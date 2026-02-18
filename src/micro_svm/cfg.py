@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import final, Callable
+from typing import Callable, final
 
-from .types import *
 from .instructions import Instruction
-
 
 EXCEPTION_MATCHER_ALL = '*'
 

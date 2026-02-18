@@ -1,8 +1,7 @@
 from typing import final
 
-from .types import TypeInfo
 from .cfg import Node
-
+from .types import TypeInfo
 
 type ValueType = bool | int | float | str | None
 type InitializerValueType = dict[str, ValueType] | list[tuple[ValueType, ValueType]] | list[ValueType] | ValueType

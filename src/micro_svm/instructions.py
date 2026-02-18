@@ -1,8 +1,7 @@
-from typing import final
 from enum import Enum, auto
+from typing import final
 
-from .types import *
-
+from .types import PrimitiveTypeInfo
 
 
 class Instruction:

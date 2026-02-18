@@ -1,7 +1,9 @@
-from .descriptors import *
-from .instructions import *
-from .cfg import *
+from typing import final
 
+from .cfg import *  # noqa: F403
+from .descriptors import CompiledSubroutine, FunctionInfo, VariableInfo, structure_member_to_signature
+from .instructions import *  # noqa: F403
+from .types import integer, reference
 
 
 @final

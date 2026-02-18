@@ -2,14 +2,14 @@ from datetime import timedelta
 from time import time
 from typing import final
 
-from micro_svm.defect_detection import DefectAnalyzer, DetectedFailure
-from micro_svm.global_context import CONTEXT as spec, show_compiled_specs
-from micro_svm.serialization import save_state_to_file
-
-
 import list_spec
 
+from micro_svm.defect_detection import DefectAnalyzer, DetectedFailure
+from micro_svm.global_context import CONTEXT as spec
+from micro_svm.global_context import show_compiled_specs
+from micro_svm.serialization import save_state_to_file
 
+#
 
 # === FOR TESTING ===
 

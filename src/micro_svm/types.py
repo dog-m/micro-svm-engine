@@ -1,5 +1,6 @@
+from typing import Callable, final
+
 import z3
-from typing import final, Callable
 
 
 class TypeInfo:

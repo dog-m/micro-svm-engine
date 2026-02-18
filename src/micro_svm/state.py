@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from .descriptors import ValueType, InitializerValueType
-from .types import *
+from .descriptors import InitializerValueType, ValueType
+from .types import ArrayTypeInfo, MapTypeInfo, SetTypeInfo, StructureTypeInfo, TransformTypeInfo
 
 
 def hash_str(s: str | object) -> int:
