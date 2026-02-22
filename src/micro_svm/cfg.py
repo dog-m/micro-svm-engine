@@ -422,8 +422,8 @@ class ProgramVisualiser:
         if node.finishing_section is not None:
             self.show('finally', node.finishing_section)
 
-    def visit_CFG_FlowSwitch(self, node: Switch) -> None:
-        self.show(f"flow-switch [cumulative={node.cumulative}]", node.value_source)
+    def visit_CFG_Switch(self, node: Switch) -> None:
+        self.show(f"switch [cumulative={node.cumulative}]", node.value_source)
         self.update_indentation(+1)
         for i, (condition, handler) in enumerate(node.cases):
             self.simple(f"case #{i}:")

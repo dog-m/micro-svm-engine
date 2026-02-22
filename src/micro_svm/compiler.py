@@ -75,7 +75,8 @@ class Readable:
 
 
 type PType = PrimitiveTypeInfo
-type BranchCallback = Callable[[], None]
+type BranchCallback           = Callable[[], None]
+type BranchCallbackWithResult = Callable[[], Readable]
 
 class VariableHandle:
     def __init__(self,
@@ -552,15 +553,14 @@ class CompilerContext:
         return self._loop_id_stack[-1]
 
 
-    def branch(self, condition: Callable[[], Readable]):
+    def branch(self, condition: BranchCallback):
         assert condition is not None
 
         class BranchingPointBuilder(GraphJunctionBuilder):
-            def __init__(self, ctx: CompilerContext, cond: Callable[[], Readable]) -> None:
+            def __init__(self, ctx: CompilerContext) -> None:
                 self._ctx = ctx
-                self._path_condition = cond
-                self._path_true = None
-                self._path_false = None
+                self._path_true: Node | None = None
+                self._path_false: Node | None = None
                 ctx._incomplete_builders.append(self)
 
             def when_true(self, action: BranchCallback):
@@ -585,7 +585,7 @@ class CompilerContext:
 
                 # 'executing' the condition
                 cond = cc._current_block = BasicBlock()
-                last_instructions = self._path_condition().instructions
+                last_instructions = condition().instructions
                 cc._current_block.instructions.extend(last_instructions)
                 cc._ignore_followup_instructions = False
 
@@ -602,8 +602,8 @@ class CompilerContext:
                     cc._ignore_followup_instructions = False
 
                 if_node = last_block.next = If(cond, b_true, b_false)
-                cc._current_block = if_node.next = BasicBlock()
                 # continue the execution, even if there is an empty dangling block after the last 'if'
+                cc._current_block = if_node.next = BasicBlock()
 
 
             def explore_while(self) -> None:
@@ -617,7 +617,7 @@ class CompilerContext:
 
                 # 'executing' the condition
                 cond = cc._current_block = BasicBlock()
-                last_instructions = self._path_condition().instructions
+                last_instructions = condition().instructions
                 cc._current_block.instructions.extend(last_instructions)
                 cc._ignore_followup_instructions = False
 
@@ -630,10 +630,10 @@ class CompilerContext:
                 cc._pop_loop_id()
                 cc._ignore_followup_instructions = False
 
-                cc._current_block = loop_node.next = BasicBlock()
                 # continue the execution, even if there is an empty dangling block after the last 'while'
+                cc._current_block = loop_node.next = BasicBlock()
 
-        return BranchingPointBuilder(self, condition)
+        return BranchingPointBuilder(self)
 
 
     def loop_break(self) -> None:
@@ -838,8 +838,8 @@ class CompilerContext:
                     )).explore_if()
                     cc._ignore_followup_instructions = False
 
-                cc._current_block = try_node.next = BasicBlock()
                 # continue the execution, even if there is an empty dangling block after this one
+                cc._current_block = try_node.next = BasicBlock()
 
 
         return TryBuilder(self, body)
@@ -958,7 +958,7 @@ class CompilerContext:
         )
 
 
-    def begin_switch(self, value_type: PType, value: BranchCallback):
+    def begin_switch(self, value_type: PType, value: BranchCallbackWithResult):
         assert value_type.is_primitive()
         assert value is not None
 
@@ -980,7 +980,6 @@ class CompilerContext:
                 self._default_handler = wildcard_handler
                 return self
 
-
             def end_switch(self) -> None:
                 cc = self._ctx
                 cc._incomplete_builders.remove(self)
@@ -990,7 +989,8 @@ class CompilerContext:
                 # 'running' value source branch
                 node_backup = cc._current_block
                 source = cc._current_block = BasicBlock()
-                value()
+                last_instructions = value().instructions
+                cc._current_block.instructions.extend(last_instructions)
                 cc._ignore_followup_instructions = False
                 cc._current_block = node_backup
 
@@ -1014,27 +1014,30 @@ class CompilerContext:
                         handler_entry
                     ))
 
-                # adding wildcard handler when present
+                # always adding a wildcard handler
+                condition = BasicBlock()
+                condition.instructions.extend([
+                    PushPrimitive(condition_value, value_type)
+                    for condition_value in self._cases.keys()
+                ])
+                condition.instructions.append(
+                    DistinctValues(len(self._cases) + 1)  # unmatched cases + source
+                )
+                # ===
+                node_backup = cc._current_block
+                handler_entry = cc._current_block = BasicBlock()
                 if self._default_handler is not None:
-                    condition = BasicBlock()
-                    condition.instructions.extend([
-                        PushPrimitive(condition_value, value_type)
-                        for condition_value in self._cases.keys()
-                    ])
-                    condition.instructions.append(
-                        DistinctValues(len(self._cases) + 1)  # unmatched cases + source
-                    )
-                    # ===
-                    node_backup = cc._current_block
-                    handler_entry = cc._current_block = BasicBlock()
                     self._default_handler()
-                    cc._ignore_followup_instructions = False
-                    cc._current_block = node_backup
-                    # ===
-                    switch.cases.append((
-                        condition,
-                        handler_entry
-                    ))
+                cc._ignore_followup_instructions = False
+                cc._current_block = node_backup
+                # ===
+                switch.cases.append((
+                    condition,
+                    handler_entry
+                ))
+
+                # continuation after the switch
+                cc._current_block = switch.next = BasicBlock()
 
         return SwitchBuilder(self)
 

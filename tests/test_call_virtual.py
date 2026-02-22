@@ -132,7 +132,8 @@ SubroutineExit
 # === testing ===
 
 
-class VC(unittest.TestCase):
+class Tests(unittest.TestCase):
+
     def test_virtual_call(self):
         self.maxDiff = None
         paths: list[ProgramPath] = []

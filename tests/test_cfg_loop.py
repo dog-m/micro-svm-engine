@@ -60,7 +60,8 @@ ControlPoint [id='#TTTF']
 # === testing ===
 
 
-class WL(unittest.TestCase):
+class Tests(unittest.TestCase):
+
     def test_foo(self):
         spec = GlobalContext()
         spec.register_global_variable('foo', boolean, initializer=False)

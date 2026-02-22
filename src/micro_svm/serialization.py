@@ -872,12 +872,10 @@ class InstructionDecoder:
 
 
 # WARNING: this uses recursive approach for sub-graphs reconstruction!
+# WARNING: this should be synchronized with encoding
 @final
 class CfgDecoder:
-    def __init__(
-            self,
-            instruction_decoder: InstructionDecoder,
-        ):
+    def __init__(self, instruction_decoder: InstructionDecoder):
         assert instruction_decoder is not None
         self._instruction_decoder = instruction_decoder
 
@@ -976,10 +974,10 @@ class CfgDecoder:
         )
 
     def _decode_Switch(self, info: dict[str, object]) -> Node:
-        src = self.cfg_nodes[info['value_source']]
+        src = self.cfg_nodes.get(info['value_source'])
         node = Switch(self._decode_node(src))
         node.cumulative = info['cumulative']
-        for condition, handler in info['cases'].items():  # WARNING: this should be synchronized with encoding
+        for condition, handler in info['cases'].items():
             node.cases.append((
                 self._decode_node(self.cfg_nodes[condition]),
                 self._decode_node(self.cfg_nodes[handler])

@@ -114,6 +114,13 @@ class PathEnumerator:
         def update_loop_level(self, delta: int) -> None:
             self.loop_level += delta
 
+        def backup_branch_markers(self) -> list[str]:
+            return self.branch_id_stack.copy()
+
+        def restore_branch_markers(self, id_stack: list[str]) -> None:
+            self.branch_id_stack.clear()
+            self.branch_id_stack.extend(id_stack)
+
 
     def __init__(self, program: Program, resolver: TypeHierarchyResolver) -> None:
         self.program = program
@@ -269,15 +276,14 @@ class PathEnumerator:
 
 
     def visit_CFG_While(self, node: While) -> None:
-        branch_id_stack_backup = self._current_path.branch_id_stack.copy()
+        markers_backup = self._current_path.backup_branch_markers()
 
         max_iter_count = self.config.get_loop_iterations_limit(self._current_path.loop_level)
         self._current_path.update_loop_level(+1)
 
         for iter_count in range(max_iter_count, -1, -1):
-            # managing markers manually here
-            self._current_path.branch_id_stack.clear()
-            self._current_path.branch_id_stack.extend(branch_id_stack_backup)
+            # managing markers
+            self._current_path.restore_branch_markers(markers_backup)
 
             # main sequence of un-folded iterations
             subpath_head: Node | None = None
@@ -366,11 +372,10 @@ class PathEnumerator:
             candidates = self._th_resolver.get_virtual_call_targets(node.structure_name, node.method_name)
 
             # branching-off
-            branch_id_stack_backup = self._current_path.branch_id_stack.copy()
+            markers_backup = self._current_path.backup_branch_markers()
             for i, (type_guard, impl_name) in enumerate(candidates.items()):
-                # managing markers manually here
-                self._current_path.branch_id_stack.clear()
-                self._current_path.branch_id_stack.extend(branch_id_stack_backup)
+                # managing markers
+                self._current_path.restore_branch_markers(markers_backup)
                 # ===
                 check = BasicBlock()
                 check.instructions.extend([
@@ -536,11 +541,10 @@ class PathEnumerator:
 
         # regular case - normal catch blocks and top-most "final" block if present
         handled_exception_types: list[str] = []
-        branch_id_stack_backup = self._current_path.branch_id_stack.copy()
+        markers_backup = self._current_path.backup_branch_markers()
         for struct_name, (table, handler) in exception_handlers_ordered.items():
-            # managing markers manually here
-            self._current_path.branch_id_stack.clear()
-            self._current_path.branch_id_stack.extend(branch_id_stack_backup)
+            # managing markers
+            self._current_path.restore_branch_markers(markers_backup)
             # ===
             catch_block = BasicBlock()
             if struct_name == EXCEPTION_MATCHER_ALL:
@@ -571,12 +575,11 @@ class PathEnumerator:
 
 
     def visit_CFG_Switch(self, node: Switch) -> None:
-        branch_id_stack_backup = self._current_path.branch_id_stack.copy()
+        markers_backup = self._current_path.backup_branch_markers()
         processed_conditions: list[Node] = []
         for i, (condition, handler) in enumerate(node.cases):
-            # managing markers manually here
-            self._current_path.branch_id_stack.clear()
-            self._current_path.branch_id_stack.extend(branch_id_stack_backup)
+            # managing markers
+            self._current_path.restore_branch_markers(markers_backup)
             # ===
             entry = cond_last = None
             if node.value_source is None:

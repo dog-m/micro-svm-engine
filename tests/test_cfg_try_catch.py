@@ -358,7 +358,8 @@ Assume
 # === testing ===
 
 
-class TC(unittest.TestCase):
+class Tests(unittest.TestCase):
+
     def test_try_catch_finally(self):
         self.maxDiff = None
         paths_normal: list[ProgramPath] = []

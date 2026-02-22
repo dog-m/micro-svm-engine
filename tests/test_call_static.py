@@ -57,7 +57,8 @@ EXPRESSIONS = [
 # === testing ===
 
 
-class SC(unittest.TestCase):
+class Tests(unittest.TestCase):
+
     def test_static_call(self):
         self.maxDiff = None
         paths: list[ProgramPath] = []

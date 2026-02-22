@@ -51,7 +51,8 @@ th_resolver.analyze_structure_hierarchy()
 # === testing ===
 
 
-class OFA(unittest.TestCase):
+class Tests(unittest.TestCase):
+
     def test_object_instantiation_and_field_access(self):
         paths: list[ProgramPath] = []
 

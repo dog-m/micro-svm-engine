@@ -75,12 +75,13 @@ Noop""",
 # === testing ===
 
 
-class MLU(unittest.TestCase):
+class Tests(unittest.TestCase):
+
     def build_program(self):
         cc = CompilerContext()
 
-        class Something:
-            def __init__(self, index: int, child: 'Something | None' = None):
+        class Segment:
+            def __init__(self, index: int, child: 'Segment | None' = None):
                 self.index = index
                 self.child = child
 
@@ -100,17 +101,17 @@ class MLU(unittest.TestCase):
                     self.action
                 ).explore_if()
 
-        things = None
+        chain = None
         for i in range(N, 0, -1):
-            things = Something(i, things)
-        things.assemble()
+            chain = Segment(i, chain)
+        chain.assemble()
 
         cc.noop()
         cc.end_of_program()
         return cc.build()
 
 
-    def test_nested_if_construction(self):
+    def test_if_nested_structure(self):
         lines: list[str] = []
         vis = ProgramVisualiser(lines.append)
         vis.show('<main>', self.build_program().entry_node)
@@ -119,7 +120,7 @@ class MLU(unittest.TestCase):
         self.assertEqual(M, '\n'.join(lines))
 
 
-    def test_paths(self):
+    def test_if_nested_paths(self):
         spec = GlobalContext()
         prog = Program(spec, self.build_program())
         counter: list[ProgramPath] = []
