@@ -4,7 +4,7 @@ from typing import final
 
 import z3
 
-from .descriptors import InitializerValueType, ValueType, VariableInfo
+from .descriptors import VariableInfo
 from .execution import (
     SymbolicStateMachine,
     VersionedVariable,

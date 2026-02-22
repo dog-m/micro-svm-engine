@@ -2,7 +2,7 @@ import json
 from typing import Callable, final
 
 from .cfg import *  # noqa: F403
-from .descriptors import CompiledSubroutine, FunctionInfo, InitializerValueType, VariableInfo
+from .descriptors import CompiledSubroutine, FunctionInfo, VariableInfo
 from .global_context import GlobalContext
 from .instructions import *  # noqa: F403
 from .state import ObjectState, ProgramState, VariableState
@@ -207,6 +207,8 @@ class InstructionEncoder:
             ExceptionWrite:       self._encode_default,
             ClearStackToBoundary: self._encode_ClearStackToBoundary,
             PushStackBoundary:    self._encode_PushStackBoundary,
+            StringOperation:      self._encode_StringOperation,
+            ContainerTypeCheck:   self._encode_ContainerTypeCheck,
         }
 
     def _encode_default(self, _: Instruction):
@@ -327,6 +329,20 @@ class InstructionEncoder:
             'boundary': inst.boundary,
         }
 
+    def _encode_StringOperation(self, inst: StringOperation):
+        return {
+            'operation': inst.operation.name,
+        }
+
+    def _encode_ContainerTypeCheck(self, inst: ContainerTypeCheck):
+        return {
+            'container_kind': inst.container_kind.name,
+            'values': [
+                self.type_encoder.encode_type_reference(t)
+                for t in inst.item_types
+            ]
+        }
+
     def encode_instruction(self, inst: Instruction) -> dict[str, object]:
         return {
             '_': inst.__class__.__name__,
@@ -439,6 +455,16 @@ class CfgEncoder:
     def visit_CFG_Throw(self, _: Throw) -> dict[str, object]:
         return {
             # as expected!
+        }
+
+    def visit_CFG_Switch(self, node: Switch) -> dict[str, object]:
+        return {
+            'value_source': self._encode_node(node.value_source),
+            'cumulative': node.cumulative,
+            'cases': {
+                self._encode_node(condition) : self._encode_node(handler)
+                for (condition, handler) in node.cases
+            },
         }
 
     def _encode_node(self, node: Node | None) -> str | None:
@@ -696,6 +722,8 @@ class InstructionDecoder:
         self._set_decoder(ExceptionWrite,       self._decode_default)
         self._set_decoder(ClearStackToBoundary, self._decode_ClearStackToBoundary)
         self._set_decoder(PushStackBoundary,    self._decode_PushStackBoundary)
+        self._set_decoder(StringOperation,      self._decode_StringOperation)
+        self._set_decoder(ContainerTypeCheck,   self._decode_ContainerTypeCheck)
 
     def _set_decoder(self, clazz: type, decoder: Callable[[dict, type], Instruction]) -> None:
         self.decoders[clazz.__name__] = lambda info, c=clazz: decoder(info, c)
@@ -768,7 +796,7 @@ class InstructionDecoder:
 
     def _decode_PrimitiveOp(self, info: dict[str, object], ctor: type[PrimitiveOp]):
         return ctor(
-            PrimitiveOps[info['operation']],
+            PrimitiveOps[info['operation'].upper()],
         )
 
     def _decode_NewInstance(self, info: dict[str, object], ctor: type[NewInstance]):
@@ -818,6 +846,20 @@ class InstructionDecoder:
     def _decode_PushStackBoundary(self, info: dict[str, object], ctor: type[PushStackBoundary]):
         return ctor(
             info['boundary'],
+        )
+
+    def _decode_StringOperation(self, info: dict[str, object], ctor: type[StringOperation]):
+        return ctor(
+            StringOps[info['operation'].upper()],
+        )
+
+    def _decode_ContainerTypeCheck(self, info: dict[str, object], ctor: type[ContainerTypeCheck]):
+        return ctor(
+            ContainerKind[info['container_kind']],
+            [
+                self.type_decoder.decode_type_reference(t)
+                for t in info['item_types']
+            ]
         )
 
     def decode_instruction(self, info: dict[str, object]) -> Instruction:
@@ -932,6 +974,17 @@ class CfgDecoder:
         return Throw(
             # as expected!
         )
+
+    def _decode_Switch(self, info: dict[str, object]) -> Node:
+        src = self.cfg_nodes[info['value_source']]
+        node = Switch(self._decode_node(src))
+        node.cumulative = info['cumulative']
+        for condition, handler in info['cases'].items():  # WARNING: this should be synchronized with encoding
+            node.cases.append((
+                self._decode_node(self.cfg_nodes[condition]),
+                self._decode_node(self.cfg_nodes[handler])
+            ))
+        return node
 
     def _decode_node(self, info: dict[str, object] | None) -> Node | None:
         result: Node | None = None

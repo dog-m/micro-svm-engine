@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from typing import final
 
-from .types import PrimitiveTypeInfo
+from .types import PrimitiveTypeInfo, ValueType
 
 
 class Instruction:
@@ -54,8 +54,9 @@ class PushPrimitive(Instruction):
     """
     __slots__ = ('value', 'type')
 
-    def __init__(self, value: object, type: PrimitiveTypeInfo) -> None:
-        assert isinstance(value, (str, int, float)) and type
+    def __init__(self, value: ValueType, type: PrimitiveTypeInfo) -> None:
+        assert value is not None
+        assert type.is_primitive()
         self.value = value
         self.type = type
 
@@ -72,7 +73,7 @@ class PushSymbolic(Instruction):
     __slots__ = ('type',)
 
     def __init__(self, type: PrimitiveTypeInfo) -> None:
-        assert type and type.is_primitive()
+        assert type.is_primitive()
         self.type = type
 
     def __str__(self) -> str:
@@ -613,6 +614,33 @@ class StringOperation(Instruction):
     def __str__(self):
         return f"{self.__class__.__name__} [op={self.operation.name}]"
 
+
+
+@final
+class ContainerKind(Enum):
+    ARRAY     = auto(), 1
+    SET       = auto(), 1
+    MAP       = auto(), 2  # k+v
+    TRANSFORM = auto(), 2  # k+v
+
+
+@final
+class ContainerTypeCheck(Instruction):
+    """
+    Checks if the provided reference is a container object of a specific type.
+    """
+    __slots__ = ('container_kind', 'item_types')
+
+    def __init__(self, kind: ContainerKind, items: list[PrimitiveTypeInfo]):
+        assert kind is not None
+        assert items is not None
+        assert len(items) == kind.value[1]
+        self.container_kind = kind
+        self.item_types     = items
+
+    def __str__(self):
+        items = '+'.join([str(t) for t in self.item_types])
+        return f"{self.__class__.__name__} [kind={self.container_kind.name}, items={items}]"
 
 
 

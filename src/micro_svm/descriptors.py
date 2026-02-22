@@ -1,10 +1,7 @@
 from typing import final
 
 from .cfg import Node
-from .types import TypeInfo
-
-type ValueType = bool | int | float | str | None
-type InitializerValueType = dict[str, ValueType] | list[tuple[ValueType, ValueType]] | list[ValueType] | ValueType
+from .types import InitializerValueType, TypeInfo
 
 
 @final
@@ -20,9 +17,8 @@ class VariableInfo:
         self.initializer = initializer
         self.tags: set[str] = set() if tags is None else tags
 
-    # to make this type hashable
     def __hash__(self) -> int:
-        return hash(self.name)  # WARNING: there might be a problem???
+        return hash(self.name)
 
     def __eq__(self, value: object) -> bool:
         return self.name == value.name

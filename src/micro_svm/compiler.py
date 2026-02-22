@@ -3,7 +3,7 @@ from typing import final
 from .cfg import *  # noqa: F403
 from .descriptors import CompiledSubroutine, FunctionInfo, VariableInfo, structure_member_to_signature
 from .instructions import *  # noqa: F403
-from .types import integer, reference
+from .types import ValueType, integer, reference
 
 
 @final
@@ -75,6 +75,7 @@ class Readable:
 
 
 type PType = PrimitiveTypeInfo
+type BranchCallback = Callable[[], None]
 
 class VariableHandle:
     def __init__(self,
@@ -500,7 +501,7 @@ class CompilerContext:
 
     def call(self,
              function_or_method: str | tuple[str, str], args: list[Readable],
-             return_type: PrimitiveTypeInfo | None,
+             return_type: PType | None,
              *,
              discard_result: bool = False,
              virtual: bool = True,
@@ -554,27 +555,27 @@ class CompilerContext:
     def branch(self, condition: Callable[[], Readable]):
         assert condition is not None
 
-        class BranchingPoint(GraphJunctionBuilder):
-            def __init__(self, cc: 'CompilerContext', cond: Callable[[], Readable]) -> None:
-                self._cc = cc
+        class BranchingPointBuilder(GraphJunctionBuilder):
+            def __init__(self, ctx: CompilerContext, cond: Callable[[], Readable]) -> None:
+                self._ctx = ctx
                 self._path_condition = cond
                 self._path_true = None
                 self._path_false = None
-                cc._incomplete_builders.append(self)
+                ctx._incomplete_builders.append(self)
 
-            def when_true(self, action: Callable[[], None]):
+            def when_true(self, action: BranchCallback):
                 assert action is not None
                 self._path_true = action
                 return self
 
-            def when_false(self, action: Callable[[], None]):
+            def when_false(self, action: BranchCallback):
                 assert action is not None
                 self._path_false = action
                 return self
 
 
             def explore_if(self) -> None:
-                cc = self._cc
+                cc = self._ctx
                 cc._incomplete_builders.remove(self)
                 assert self._path_true is not None
                 if cc._ignore_followup_instructions:
@@ -606,7 +607,7 @@ class CompilerContext:
 
 
             def explore_while(self) -> None:
-                cc = self._cc
+                cc = self._ctx
                 cc._incomplete_builders.remove(self)
                 assert self._path_true is not None and self._path_false is None
                 if cc._ignore_followup_instructions:
@@ -632,7 +633,7 @@ class CompilerContext:
                 cc._current_block = loop_node.next = BasicBlock()
                 # continue the execution, even if there is an empty dangling block after the last 'while'
 
-        return BranchingPoint(self, condition)
+        return BranchingPointBuilder(self, condition)
 
 
     def loop_break(self) -> None:
@@ -759,16 +760,16 @@ class CompilerContext:
         )
 
 
-    def try_block(self, body: Callable[[], None]):
+    def try_block(self, body: BranchCallback):
         assert body is not None
 
         class TryBuilder(GraphJunctionBuilder):
-            def __init__(self, cc: CompilerContext, body: Callable[[], None]):
-                self._cc = cc
+            def __init__(self, ctx: CompilerContext, body: BranchCallback):
+                self._ctx = ctx
                 self._body = body
                 self._catch_handlers: dict[str, Callable[[JoinedHandle], None]] = {}
                 self._finally_handler = None
-                cc._incomplete_builders.append(self)
+                ctx._incomplete_builders.append(self)
 
             def catch(self, error_structure_type: str, handler: Callable[[JoinedHandle], None]):
                 assert error_structure_type and error_structure_type != EXCEPTION_MATCHER_ALL
@@ -776,14 +777,14 @@ class CompilerContext:
                 self._catch_handlers[error_structure_type] = handler
                 return self
 
-            def final(self, handler: Callable[[], None]):
+            def final(self, handler: BranchCallback):
                 assert handler is not None
                 self._finally_handler = handler
                 return self
 
 
             def explore(self) -> None:
-                cc = self._cc
+                cc = self._ctx
                 cc._incomplete_builders.remove(self)
                 assert len(self._catch_handlers) > 0 or self._finally_handler is not None
                 if cc._ignore_followup_instructions:
@@ -954,6 +955,121 @@ class CompilerContext:
         return Readable(
             *s.instructions,
             StringOperation(StringOps.ORD),
+        )
+
+
+    def begin_switch(self, value_type: PType, value: BranchCallback):
+        assert value_type.is_primitive()
+        assert value is not None
+
+        class SwitchBuilder(GraphJunctionBuilder):
+            def __init__(self, ctx: CompilerContext):
+                ctx._incomplete_builders.append(self)
+                self._ctx = ctx
+                self._cases: dict[ValueType, BranchCallback] = {}
+                self._default_handler: BranchCallback | None = None
+
+            def when(self, value: ValueType, handler: BranchCallback):
+                assert value is not None
+                assert handler is not None
+                self._cases[value] = handler
+                return self
+
+            def otherwise(self, wildcard_handler: BranchCallback):
+                assert wildcard_handler is not None
+                self._default_handler = wildcard_handler
+                return self
+
+
+            def end_switch(self) -> None:
+                cc = self._ctx
+                cc._incomplete_builders.remove(self)
+                if cc._ignore_followup_instructions:
+                    return
+
+                # 'running' value source branch
+                node_backup = cc._current_block
+                source = cc._current_block = BasicBlock()
+                value()
+                cc._ignore_followup_instructions = False
+                cc._current_block = node_backup
+
+                # constructing the branching node and 'running' individual branches
+                switch = cc._current_block.next = Switch(source)
+                for condition_value, handler in self._cases.items():
+                    condition = BasicBlock()
+                    condition.instructions.extend([
+                        PushPrimitive(condition_value, value_type),
+                        PrimitiveOp(PrimitiveOps.EQ),
+                    ])
+                    # ===
+                    node_backup = cc._current_block
+                    handler_entry = cc._current_block = BasicBlock()
+                    handler()
+                    cc._ignore_followup_instructions = False
+                    cc._current_block = node_backup
+                    # ===
+                    switch.cases.append((
+                        condition,
+                        handler_entry
+                    ))
+
+                # adding wildcard handler when present
+                if self._default_handler is not None:
+                    condition = BasicBlock()
+                    condition.instructions.extend([
+                        PushPrimitive(condition_value, value_type)
+                        for condition_value in self._cases.keys()
+                    ])
+                    condition.instructions.append(
+                        DistinctValues(len(self._cases) + 1)  # unmatched cases + source
+                    )
+                    # ===
+                    node_backup = cc._current_block
+                    handler_entry = cc._current_block = BasicBlock()
+                    self._default_handler()
+                    cc._ignore_followup_instructions = False
+                    cc._current_block = node_backup
+                    # ===
+                    switch.cases.append((
+                        condition,
+                        handler_entry
+                    ))
+
+        return SwitchBuilder(self)
+
+
+    def is_array(self, ref: Readable, item_type: PType) -> Readable:
+        assert item_type.is_primitive()
+        return Readable(
+            *ref.instructions,
+            ContainerTypeCheck(ContainerKind.ARRAY, [item_type]),
+        )
+
+
+    def is_set(self, ref: Readable, item_type: PType) -> Readable:
+        assert item_type.is_primitive()
+        return Readable(
+            *ref.instructions,
+            ContainerTypeCheck(ContainerKind.SET, [item_type]),
+        )
+
+
+    def is_map(self, ref: Readable, key_type: PType, value_type: PType) -> Readable:
+        assert key_type.is_primitive()
+        assert value_type.is_primitive()
+        return Readable(
+            *ref.instructions,
+            ContainerTypeCheck(ContainerKind.MAP, [key_type, value_type]),
+        )
+
+
+    def is_transform(self, ref: Readable, key_type: PType, value_type: PType) -> Readable:
+        assert key_type.is_primitive()
+        assert value_type.is_primitive()
+        return Readable(
+            *ref.instructions,
+            ContainerTypeCheck(ContainerKind.TRANSFORM, [key_type, value_type]),
         )
 
 

@@ -2,6 +2,11 @@ from typing import Callable, final
 
 import z3
 
+#
+
+type ValueType = bool | int | float | str | None
+type InitializerValueType = dict[str, ValueType] | list[tuple[ValueType, ValueType]] | list[ValueType] | ValueType
+
 
 class TypeInfo:
     def __init__(self, name: str, z3_sort: z3.SortRef, default_value: z3.ExprRef | None) -> None:
@@ -216,5 +221,5 @@ class StructureTypeInfo(TypeInfo):
         self.static_methods: dict[str, str] = {}  # name -> full signature (directly bound)
 
     def __str__(self) -> str:
-        return f"struct='{self.structure_name}'"
+        return f"struct={repr(self.structure_name)}"
 

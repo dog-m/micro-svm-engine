@@ -113,7 +113,7 @@ class FaultMode(Enum):
 @final
 class SymRefPolicy(Enum):
     CLOSED = auto()
-    OPEN   = auto()  # machine can produce references to non-existing objects!
+    OPEN   = auto()  # machine allowed to produce symbolic references to non-existing objects!
 
 
 TRUE          = z3.BoolVal(True)
@@ -2505,6 +2505,25 @@ class SymbolicStateMachine:
             raise AssertionError(f"No handler for String::'{inst.operation.name}'")
         res = op_handler()
         self.push(res)
+
+
+    def visit_instruction_ContainerTypeCheck(self, inst: ContainerTypeCheck) -> None:
+        src = self.pull()
+        type_id = None
+        match inst.container_kind:
+            case ContainerKind.ARRAY:
+                type_id = typeid_name_for_array(*inst.item_types)
+            case ContainerKind.SET:
+                type_id = typeid_name_for_set(*inst.item_types)
+            case ContainerKind.MAP:
+                type_id = typeid_name_for_map(*inst.item_types)
+            case ContainerKind.TRANSFORM:
+                type_id = typeid_name_for_transform(*inst.item_types)
+            case _:
+                raise AssertionError(f"Unsupported container kind: {inst.container_kind.name}")
+        self.push(
+            self.array_get(self._object_types, src) == self._typeid_to_seq(type_id)
+        )
 
 
     def _register_new_array(self, reference: int, item_type: PrimitiveTypeInfo) -> None:

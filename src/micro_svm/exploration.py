@@ -570,3 +570,41 @@ class PathEnumerator:
             self._branch_along(catch_block)
 
 
+    def visit_CFG_Switch(self, node: Switch) -> None:
+        branch_id_stack_backup = self._current_path.branch_id_stack.copy()
+        processed_conditions: list[Node] = []
+        for i, (condition, handler) in enumerate(node.cases):
+            # managing markers manually here
+            self._current_path.branch_id_stack.clear()
+            self._current_path.branch_id_stack.extend(branch_id_stack_backup)
+            # ===
+            entry = cond_last = None
+            if node.value_source is None:
+                entry = cond_last = condition.clone()
+            else:
+                entry = node.value_source.clone()
+                cond_last = entry.get_last().next = condition.clone()
+            cond_last = cond_last.get_last()
+            # ===
+            if node.cumulative:
+                # using one-by-one split instead of a single huge expression
+                for cond in processed_conditions:
+                    cond = cond_last.next = cond.clone()
+                    cond_last = cond.get_last()
+                    discard = cond_last.next = BasicBlock()
+                    discard.instructions.extend([
+                        PrimitiveOp(PrimitiveOps.NOT),
+                        Assume(),
+                    ])
+                processed_conditions.append(condition)
+            # ===
+            control = cond_last.next = BasicBlock()
+            control.instructions.extend([
+                Assume(),
+                ControlPoint(self._push_control_node_id(f"|?{i}|")),
+            ])
+            control.next = handler
+            handler.get_last().next = node.next
+            # ===
+            self._branch_along(entry)
+

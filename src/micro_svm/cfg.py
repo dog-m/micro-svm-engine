@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Callable, final
 
 from .instructions import Instruction
-from .types import PrimitiveTypeInfo
 
 #
 
@@ -328,45 +327,26 @@ class Throw(Node):
 @final
 class Switch(Node):
     """
-    TODO: switch node (use 'Distinct(...)' for 'else' case).
+    A flexible control flow switching node.
     """
-    __slots__ = ('source', 'value_type', 'value_handlers', 'else_handler')
+    __slots__ = ('value_source', 'cumulative', 'cases')
 
-    def __init__(self, source: Node, value_type: PrimitiveTypeInfo) -> None:
-        assert source is not None
-        assert value_type.is_primitive()
+    def __init__(self, src: Node | None) -> None:
         super().__init__()
-        self.source = source
-        self.value_type = value_type
-        self.value_handlers: dict[str | float | int | bool | None, Node] = {}
-        self.else_handler: Node | None = None
+        self.value_source = src  # LHS side
+        self.cumulative: bool = False
+        self.cases: list[tuple[Node, Node]] = []  # RHS+condition piece (without "Assume") + handler
 
     def clone_self(self, dup_instructions: bool = False):
-        node = Switch(self.source.clone(dup_instructions), self.value_type)
-        for value, handler in self.value_handlers.items():
-            node.value_handlers[value] = handler.clone(dup_instructions)
-        node.else_handler = self.else_handler
+        node = Switch(self.value_source.clone(dup_instructions))
+        node.cumulative = self.cumulative
+        for condition, handler in self.cases:
+            node.cases.append((
+                condition.clone(dup_instructions),
+                handler.clone(dup_instructions)
+            ))
         return node
 
-
-@final
-class TypeSwitch(Node):
-    """
-    TODO: type switch node.
-    """
-    __slots__ = ('source', 'type_handlers')
-
-    def __init__(self, source: Node) -> None:
-        assert source is not None
-        super().__init__()
-        self.source = source
-        self.type_handlers: dict[str, Node] = {}  # 'key' is a structure type name
-
-    def clone_self(self, dup_instructions: bool = False):
-        node = TypeSwitch(self.source.clone(dup_instructions))
-        for struct_name, handler in self.type_handlers.items():
-            node.type_handlers[struct_name] = handler.clone(dup_instructions)
-        return node
 
 
 
@@ -398,11 +378,11 @@ class CFGNodeResolver:
 class ProgramVisualiser:
     TAB = ' ' * 4
 
-    def __init__(self, printer: Callable[[str], None] = print):
+    def __init__(self, printer: Callable[[str], None] | None = None):
         self.indent = 0
         self.indent_str: str = ''
         self.resolver = CFGNodeResolver(self, default_handler=self.simple)
-        self.printer = printer
+        self.printer: Callable[[str], None] = print if printer is None else printer
 
     def simple(self, value: object) -> None:
         self.printer(f"{self.indent_str}{value}")
@@ -436,9 +416,21 @@ class ProgramVisualiser:
         self.show('body', node.body)
 
     def visit_CFG_TryBlock(self, node: TryBlock) -> None:
-        self.show("try", node.body)
+        self.show('try', node.body)
         for struct_name, handler in node.catch_handlers.items():
             self.show(f"catch [struct={repr(struct_name)}]", handler)
         if node.finishing_section is not None:
             self.show('finally', node.finishing_section)
+
+    def visit_CFG_FlowSwitch(self, node: Switch) -> None:
+        self.show(f"flow-switch [cumulative={node.cumulative}]", node.value_source)
+        self.update_indentation(+1)
+        for i, (condition, handler) in enumerate(node.cases):
+            self.simple(f"case #{i}:")
+            self.update_indentation(+1)
+            self.show('condition', condition)
+            self.show('handler', handler)
+            self.update_indentation(-1)
+        self.update_indentation(-1)
+
 
