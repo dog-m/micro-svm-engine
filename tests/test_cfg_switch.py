@@ -42,11 +42,10 @@ PATHS = [
 Noop [comment='before']
 PushPrimitive [value='my-string' (string)]
 PushPrimitive [value='foo' (string)]
-PushPrimitive [value='bar' (string)]
-DistinctValues [count=3]
+PrimitiveOp [op=EQ, inputs=2]
 Assume
-ControlPoint [id='#|?2|']
-Noop [comment='2']
+ControlPoint [id='#|?0|']
+Noop [comment='0']
 Noop [comment='after']""",
 
     """<path:1>
@@ -63,10 +62,11 @@ Noop [comment='after']""",
 Noop [comment='before']
 PushPrimitive [value='my-string' (string)]
 PushPrimitive [value='foo' (string)]
-PrimitiveOp [op=EQ, inputs=2]
+PushPrimitive [value='bar' (string)]
+DistinctValues [count=3]
 Assume
-ControlPoint [id='#|?0|']
-Noop [comment='0']
+ControlPoint [id='#|?2|']
+Noop [comment='2']
 Noop [comment='after']""",
 ]
 

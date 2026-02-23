@@ -577,7 +577,7 @@ class PathEnumerator:
     def visit_CFG_Switch(self, node: Switch) -> None:
         markers_backup = self._current_path.backup_branch_markers()
         processed_conditions: list[Node] = []
-        for i, (condition, handler) in enumerate(node.cases):
+        for i, (condition, handler) in reversed(list(enumerate(node.cases))):
             # managing markers
             self._current_path.restore_branch_markers(markers_backup)
             # ===
