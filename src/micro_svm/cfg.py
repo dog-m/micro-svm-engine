@@ -314,7 +314,9 @@ class Switch(Node):
         self.cases: list[tuple[Node, Node]] = []  # RHS+condition piece (without "Assume") + handler
 
     def clone_self(self, dup_instructions: bool = False):
-        node = Switch(self.value_source.clone(dup_instructions))
+        node = Switch(
+            None if self.value_source is None else self.value_source.clone(dup_instructions)
+        )
         node.cumulative = self.cumulative
         for condition, handler in self.cases:
             node.cases.append((
