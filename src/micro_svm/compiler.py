@@ -1007,15 +1007,15 @@ class CompilerContext:
                 if cc._ignore_followup_instructions:
                     return
 
+                # constructing the branching node
+                switch = cc._current_block.next = Switch(None)
+
                 # 'running' value source branch
-                node_backup = cc._current_block
-                source = cc._current_block = BasicBlock()
+                switch.value_source = cc._current_block = BasicBlock()
                 cc._current_block.instructions.extend(value().instructions)
                 cc._ignore_followup_instructions = False
-                cc._current_block = node_backup
 
-                # constructing the branching node and 'running' individual branches
-                switch = cc._current_block.next = Switch(source)
+                # 'running' individual branches
                 for condition_value, handler in self._cases.items():
                     condition = BasicBlock()
                     condition.instructions.extend([
@@ -1023,11 +1023,9 @@ class CompilerContext:
                         PrimitiveOp(PrimitiveOps.EQ),
                     ])
                     # ===
-                    node_backup = cc._current_block
                     handler_entry = cc._current_block = BasicBlock()
                     handler()
                     cc._ignore_followup_instructions = False
-                    cc._current_block = node_backup
                     # ===
                     switch.cases.append((
                         condition,
@@ -1044,12 +1042,10 @@ class CompilerContext:
                     DistinctValues(len(self._cases) + 1)  # unmatched cases + source
                 )
                 # ===
-                node_backup = cc._current_block
                 handler_entry = cc._current_block = BasicBlock()
                 if self._default_handler is not None:
                     self._default_handler()
                 cc._ignore_followup_instructions = False
-                cc._current_block = node_backup
                 # ===
                 switch.cases.append((
                     condition,
