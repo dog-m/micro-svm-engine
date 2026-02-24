@@ -221,50 +221,6 @@ class PathEnumerator:
         self._continue_along(node.next)
 
 
-    def visit_CFG_If(self, node: If) -> None:
-        # assemble and schedule the path along the 'False' branch first
-        if node.branch_false is None:
-            condition = node.condition.clone()
-            control_node = condition.get_last().next = BasicBlock()
-            control_node.instructions.extend([
-                PrimitiveOp(PrimitiveOps.NOT),
-                Assume(),
-                ControlPoint(self._push_control_node_id('F')),
-            ])
-            control_node.next = node.next
-            # ===
-            self._branch_along(condition)
-            self._current_path.branch_id_stack.pop()  # restore for the other branch
-
-        else:
-            condition = node.condition.clone()
-            branch    = node.branch_false.clone()
-            control_node = condition.get_last().next = BasicBlock()
-            control_node.instructions.extend([
-                PrimitiveOp(PrimitiveOps.NOT),
-                Assume(),
-                ControlPoint(self._push_control_node_id('F')),
-            ])
-            control_node.next = branch
-            branch.get_last().next = node.next
-            # ===
-            self._branch_along(condition)
-            self._current_path.branch_id_stack.pop()  # restore for the other branch
-
-        # assemble the path along the 'True' branch
-        condition = node.condition.clone()
-        branch    = node.branch_true.clone()
-        control_node = condition.get_last().next = BasicBlock()
-        control_node.instructions.extend([
-            Assume(),
-            ControlPoint(self._push_control_node_id('T')),
-        ])
-        control_node.next = branch
-        branch.get_last().next = node.next
-        # ===
-        self._branch_along(condition)
-
-
     def visit_CFG_MarkerLoopIterationEnd(self, node: MarkerLoopIterationEnd) -> None:
         # just moving forward
         self._continue_along(node.next)
@@ -606,8 +562,8 @@ class PathEnumerator:
                 Assume(),
                 ControlPoint(self._push_control_node_id(f"|?{i}|")),
             ])
-            control.next = handler
-            handler.get_last().next = node.next
+            control.next = handler.clone()
+            control.next.get_last().next = node.next
             # ===
             self._branch_along(entry)
 

@@ -70,11 +70,11 @@ class Tests(unittest.TestCase):
         def main(cc: CompilerContext) -> None:
             foo = cc.get_global_variable('foo')
             # ===
-            cc.branch(lambda: (
+            cc.begin_loop(lambda: (
                 foo.r
-            )).when_true(lambda: (
+            )).body(lambda: (
                 cc.noop('loop-body-here'),
-            )).explore_while()
+            )).end_loop()
 
         sub = simple_program(spec, main)
         th_resolver = TypeHierarchyResolver(spec)

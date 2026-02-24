@@ -47,16 +47,14 @@ class BasicBlock(Node):
     """
     __slots__ = ('instructions',)
 
-    def __init__(self) -> None:
+    def __init__(self, instructions: list[Instruction] | None = None) -> None:
         super().__init__()
-        self.instructions: list[Instruction] = []
+        self.instructions = [] if instructions is None else instructions
 
     def clone_self(self, dup_instructions: bool = False):
-        bb = BasicBlock()
-        bb.instructions.extend(
+        return BasicBlock(
             self.instructions.copy() if dup_instructions else self.instructions
         )
-        return bb
 
 
 @final
@@ -148,28 +146,6 @@ class MarkerFunctionExit(MarkerNode):
 
     def clone_self(self, dup_instructions: bool = False):
         return MarkerFunctionExit()
-
-
-@final
-class If(Node):
-    """
-    A simple branching node.
-    """
-    __slots__ = ('condition', 'branch_true', 'branch_false')
-
-    def __init__(self, cond: Node, b_true: Node, b_false: Node | None) -> None:
-        super().__init__()
-        assert cond and b_true
-        self.condition = cond
-        self.branch_true = b_true
-        self.branch_false = b_false
-
-    def clone_self(self, dup_instructions: bool = False):
-        return If(
-            self.condition.clone(dup_instructions),
-            self.branch_true.clone(dup_instructions),
-            self.branch_false.clone(dup_instructions) if self.branch_false is not None else None
-        )
 
 
 @final
@@ -396,7 +372,7 @@ class ProgramVisualiser:
         self.simple(f"{title}:")
         self.update_indentation(+1)
         if branch is None:
-            self.simple('<abstract>')
+            self.simple('<empty>')
         else:
             self.resolver.visit_chain(branch)
         self.update_indentation(-1)
@@ -404,12 +380,6 @@ class ProgramVisualiser:
     def visit_CFG_BasicBlock(self, node: BasicBlock) -> None:
         for inst in node.instructions:
             self.simple(inst)
-
-    def visit_CFG_If(self, node: If) -> None:
-        self.show('if', node.condition)
-        self.show('then', node.branch_true)
-        if node.branch_false is not None:
-            self.show('else', node.branch_false)
 
     def visit_CFG_While(self, node: While) -> None:
         self.show(f"while [#{node.loop_id}]", node.condition)

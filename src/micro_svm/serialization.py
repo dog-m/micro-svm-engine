@@ -400,13 +400,6 @@ class CfgEncoder:
             # as expected!
         }
 
-    def visit_CFG_If(self, node: If) -> dict[str, object]:
-        return {
-            'condition': self._encode_node(node.condition),
-            'then': self._encode_node(node.branch_true),
-            'else': self._encode_node(node.branch_false),
-        }
-
     def visit_CFG_While(self, node: While) -> dict[str, object]:
         return {
             'loop-id': node.loop_id,
@@ -908,17 +901,6 @@ class CfgDecoder:
     def _decode_MarkerFunctionExit(self, _: dict[str, object]) -> Node:
         return MarkerFunctionExit(
             # as expected!
-        )
-
-    def _decode_If(self, info: dict[str, object]) -> Node:
-        info_condition = self.cfg_nodes[info['condition']]
-        info_then      = self.cfg_nodes[info['then']]
-        info_else      = info['else']
-        info_else      = None if info_else is None else self.cfg_nodes[info_else]
-        return If(
-            cond=self._decode_node(info_condition),
-            b_true=self._decode_node(info_then),
-            b_false=None if info_else is None else self._decode_node(info_else),
         )
 
     def _decode_While(self, info: dict[str, object]) -> Node:

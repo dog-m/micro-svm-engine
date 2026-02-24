@@ -99,7 +99,7 @@ PushPrimitive [value=0 (ref)]
 PrimitiveOp [op=NEQ, inputs=2]
 PrimitiveOp [op=NOT, inputs=1]
 Assume
-ControlPoint [id='<e:*>F']
+ControlPoint [id='<e:*>|?1|']
 Noop [comment='bar_end']
 SubroutineExit
 Noop [comment='main_end']
@@ -150,7 +150,7 @@ PushPrimitive [value=0 (ref)]
 PrimitiveOp [op=NEQ, inputs=2]
 PrimitiveOp [op=NOT, inputs=1]
 Assume
-ControlPoint [id='<e:my_exception_bar & !(my_exception_foo)>F']
+ControlPoint [id='<e:my_exception_bar & !(my_exception_foo)>|?1|']
 Noop [comment='bar_end']
 SubroutineExit
 Noop [comment='main_end']
@@ -194,7 +194,7 @@ PushPrimitive [value=0 (ref)]
 PrimitiveOp [op=NEQ, inputs=2]
 PrimitiveOp [op=NOT, inputs=1]
 Assume
-ControlPoint [id='<e:my_exception_foo>F']
+ControlPoint [id='<e:my_exception_foo>|?1|']
 Noop [comment='bar_end']
 SubroutineExit
 Noop [comment='main_end']
@@ -242,7 +242,7 @@ VariableRead [src=bar#~local1 (local)]
 PushPrimitive [value=0 (ref)]
 PrimitiveOp [op=NEQ, inputs=2]
 Assume
-ControlPoint [id='<e:*>T']
+ControlPoint [id='<e:*>|?0|']
 VariableRead [src=bar#~local1 (local)]
 ExceptionWrite
 ExceptionRead
@@ -296,7 +296,7 @@ VariableRead [src=bar#~local1 (local)]
 PushPrimitive [value=0 (ref)]
 PrimitiveOp [op=NEQ, inputs=2]
 Assume
-ControlPoint [id='<e:my_exception_bar & !(my_exception_foo)>T']
+ControlPoint [id='<e:my_exception_bar & !(my_exception_foo)>|?0|']
 VariableRead [src=bar#~local1 (local)]
 ExceptionWrite
 ExceptionRead
@@ -343,7 +343,7 @@ VariableRead [src=bar#~local1 (local)]
 PushPrimitive [value=0 (ref)]
 PrimitiveOp [op=NEQ, inputs=2]
 Assume
-ControlPoint [id='<e:my_exception_foo>T']
+ControlPoint [id='<e:my_exception_foo>|?0|']
 VariableRead [src=bar#~local1 (local)]
 ExceptionWrite
 ExceptionRead
@@ -366,6 +366,7 @@ class Tests(unittest.TestCase):
         paths_failing: list[ProgramPath] = []
 
         #show_compiled_specs(spec)
+        #return
 
         def main(cc: CompilerContext) -> None:
             cc.noop('main')

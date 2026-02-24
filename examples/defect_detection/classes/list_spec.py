@@ -83,9 +83,9 @@ def List_equals(ctx: CompilerContext):
     item_a      = ctx.make_local_variable(ref(spec.structures['std.Object']))
     item_b      = ctx.make_local_variable(ref(spec.structures['std.Object']))
     # ===
-    ctx.branch(lambda: (
+    ctx.begin_if(lambda: (
         ctx.instance_of(other.r, 'std.List')
-    )).when_true(lambda: (
+    )).then(lambda: (
         ctx.write(items_this.w,  ctx.field_read(this.r,  'std.List', 'items')),
         ctx.write(items_other.w, ctx.field_read(other.r, 'std.List', 'items')),
 
@@ -96,9 +96,9 @@ def List_equals(ctx: CompilerContext):
         ),
 
         ctx.write(i.w, ctx.const(0)),
-        ctx.branch(lambda: (
+        ctx.begin_loop(lambda: (
             result.r & (i.r < count.r)
-        )).when_true(lambda: (
+        )).body(lambda: (
             ctx.write(item_a.w, ctx.array_get(reference, items_this.r,  i.r)),
             ctx.write(item_b.w, ctx.array_get(reference, items_other.r, i.r)),
 
@@ -107,10 +107,10 @@ def List_equals(ctx: CompilerContext):
 
             ctx.write(result.w, ctx.call(('std.Object', 'equals'), [item_a.r, item_b.r], boolean)),
             ctx.write(i.w, i.r + ctx.const(1)),
-        )).explore_while(),
-    )).when_false(lambda: (
+        )).end_loop(),
+    )).otherwise(lambda: (
         ctx.write(result.w, ctx.const(False, boolean)),
-    )).explore_if()
+    )).end_if()
 
 spec.register_function(
     name='equals',

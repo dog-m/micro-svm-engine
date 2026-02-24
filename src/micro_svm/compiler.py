@@ -553,63 +553,85 @@ class CompilerContext:
         return self._loop_id_stack[-1]
 
 
-    def branch(self, condition: BranchCallback):
+    def begin_if(self, condition: BranchCallbackWithResult):
         assert condition is not None
 
-        class BranchingPointBuilder(GraphJunctionBuilder):
+        class IfBuilder(GraphJunctionBuilder):
             def __init__(self, ctx: CompilerContext) -> None:
                 self._ctx = ctx
-                self._path_true: Node | None = None
-                self._path_false: Node | None = None
+                self._then: BranchCallback | None = None
+                self._else: BranchCallback | None = None
                 ctx._incomplete_builders.append(self)
 
-            def when_true(self, action: BranchCallback):
+            def then(self, action: BranchCallback):
                 assert action is not None
-                self._path_true = action
+                self._then = action
                 return self
 
-            def when_false(self, action: BranchCallback):
+            def otherwise(self, action: BranchCallback):
                 assert action is not None
-                self._path_false = action
+                self._else = action
                 return self
 
-
-            def explore_if(self) -> None:
+            def end_if(self) -> None:
                 cc = self._ctx
                 cc._incomplete_builders.remove(self)
-                assert self._path_true is not None
+                assert self._then is not None
                 if cc._ignore_followup_instructions:
                     return
 
-                last_block = cc._current_block
+                switch = cc._current_block.next = Switch(None)
 
                 # 'executing' the condition
-                cond = cc._current_block = BasicBlock()
-                last_instructions = condition().instructions
-                cc._current_block.instructions.extend(last_instructions)
+                switch.value_source = cc._current_block = BasicBlock()
+                cc._current_block.instructions.extend(condition().instructions)
                 cc._ignore_followup_instructions = False
 
-                # 'running' along the True branch
-                b_true = cc._current_block = BasicBlock()
-                self._path_true()
+                # 'running' along the 'THEN' branch
+                then_entry = cc._current_block = BasicBlock()
+                self._then()
                 cc._ignore_followup_instructions = False
+                switch.cases.append((
+                    BasicBlock(),
+                    then_entry
+                ))
 
-                # 'running' along the True branch
-                b_false = None
-                if self._path_false is not None:
-                    b_false = cc._current_block = BasicBlock()
-                    self._path_false()
-                    cc._ignore_followup_instructions = False
+                # 'running' along the 'ELSE' branch
+                else_entry = cc._current_block = BasicBlock()
+                if self._else is not None:
+                    self._else()
+                cc._ignore_followup_instructions = False
+                switch.cases.append((
+                    BasicBlock([
+                        PrimitiveOp(PrimitiveOps.NOT),
+                    ]),
+                    else_entry
+                ))
 
-                if_node = last_block.next = If(cond, b_true, b_false)
                 # continue the execution, even if there is an empty dangling block after the last 'if'
-                cc._current_block = if_node.next = BasicBlock()
+                cc._current_block = switch.next = BasicBlock()
+
+        return IfBuilder(self)
 
 
-            def explore_while(self) -> None:
+    def begin_loop(self, condition: BranchCallbackWithResult):
+        assert condition is not None
+
+        class LoopBuilder(GraphJunctionBuilder):
+            def __init__(self, ctx: CompilerContext) -> None:
+                self._ctx = ctx
+                self._body: BranchCallback | None = None
+                ctx._incomplete_builders.append(self)
+
+            def body(self, action: BranchCallback):
+                assert action is not None
+                self._body = action
+                return self
+
+            def end_loop(self) -> None:
                 cc = self._ctx
                 cc._incomplete_builders.remove(self)
-                assert self._path_true is not None and self._path_false is None
+                assert self._body is not None
                 if cc._ignore_followup_instructions:
                     return
 
@@ -617,8 +639,7 @@ class CompilerContext:
 
                 # 'executing' the condition
                 cond = cc._current_block = BasicBlock()
-                last_instructions = condition().instructions
-                cc._current_block.instructions.extend(last_instructions)
+                cc._current_block.instructions.extend(condition().instructions)
                 cc._ignore_followup_instructions = False
 
                 # 'running' along the True branch (i.e. the main body of the loop)
@@ -626,14 +647,14 @@ class CompilerContext:
                 loop_id = cc._next_loop_id()
                 loop_node = last_block.next = While(loop_id, cond, body)
                 cc._push_loop_id(loop_id)
-                self._path_true()
+                self._body()
                 cc._pop_loop_id()
                 cc._ignore_followup_instructions = False
 
                 # continue the execution, even if there is an empty dangling block after the last 'while'
                 cc._current_block = loop_node.next = BasicBlock()
 
-        return BranchingPointBuilder(self)
+        return LoopBuilder(self)
 
 
     def loop_break(self) -> None:
@@ -831,11 +852,11 @@ class CompilerContext:
                     #
                     self._finally_handler()
                     #
-                    cc.branch(lambda: (
+                    cc.begin_if(lambda: (
                         exception.r != cc.null_ref
-                    )).when_true(lambda: (
+                    )).then(lambda: (
                         cc.throw(exception.r),  # automatically re-throwing the exception if there is one
-                    )).explore_if()
+                    )).end_if()
                     cc._ignore_followup_instructions = False
 
                 # continue the execution, even if there is an empty dangling block after this one
@@ -989,8 +1010,7 @@ class CompilerContext:
                 # 'running' value source branch
                 node_backup = cc._current_block
                 source = cc._current_block = BasicBlock()
-                last_instructions = value().instructions
-                cc._current_block.instructions.extend(last_instructions)
+                cc._current_block.instructions.extend(value().instructions)
                 cc._ignore_followup_instructions = False
                 cc._current_block = node_backup
 

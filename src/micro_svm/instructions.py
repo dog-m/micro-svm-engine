@@ -18,7 +18,7 @@ class Instruction:
 @final
 class Noop(Instruction):
     """
-    A dummy instruction for testing purposes.
+    A dummy/placeholder instruction.
     """
     __slots__ = ('comment',)
 

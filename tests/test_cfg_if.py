@@ -11,63 +11,86 @@ from micro_svm.type_hierarchy import TypeHierarchyResolver
 
 N = 3
 M = """<main>:
-    if:
+    Noop [comment='before']
+    switch [cumulative=False]:
         PushPrimitive [value=1 (integer)]
-    then:
-        if:
-            PushPrimitive [value=2 (integer)]
-        then:
-            if:
-                PushPrimitive [value=3 (integer)]
-            then:
-                Noop
-    Noop
+        case #0:
+            condition:
+            handler:
+                switch [cumulative=False]:
+                    PushPrimitive [value=2 (integer)]
+                    case #0:
+                        condition:
+                        handler:
+                            switch [cumulative=False]:
+                                PushPrimitive [value=3 (integer)]
+                                case #0:
+                                    condition:
+                                    handler:
+                                        Noop [comment='body']
+                                case #1:
+                                    condition:
+                                        PrimitiveOp [op=NOT, inputs=1]
+                                    handler:
+                    case #1:
+                        condition:
+                            PrimitiveOp [op=NOT, inputs=1]
+                        handler:
+        case #1:
+            condition:
+                PrimitiveOp [op=NOT, inputs=1]
+            handler:
+    Noop [comment='after']
     <marker: end-of-program>"""
 
 
 PATHS = [
     """<path:0>
+Noop [comment='before']
 PushPrimitive [value=1 (integer)]
 Assume
-ControlPoint [id='#T']
+ControlPoint [id='#|?0|']
 PushPrimitive [value=2 (integer)]
 Assume
-ControlPoint [id='#TT']
+ControlPoint [id='#|?0||?0|']
 PushPrimitive [value=3 (integer)]
 Assume
-ControlPoint [id='#TTT']
-Noop
-Noop""",
+ControlPoint [id='#|?0||?0||?0|']
+Noop [comment='body']
+Noop [comment='after']""",
 
     """<path:1>
+Noop [comment='before']
 PushPrimitive [value=1 (integer)]
 Assume
-ControlPoint [id='#T']
+ControlPoint [id='#|?0|']
 PushPrimitive [value=2 (integer)]
 Assume
-ControlPoint [id='#TT']
+ControlPoint [id='#|?0||?0|']
 PushPrimitive [value=3 (integer)]
 PrimitiveOp [op=NOT, inputs=1]
 Assume
-ControlPoint [id='#TTF']
-Noop""",
+ControlPoint [id='#|?0||?0||?1|']
+Noop [comment='after']""",
 
     """<path:2>
+Noop [comment='before']
 PushPrimitive [value=1 (integer)]
 Assume
-ControlPoint [id='#T']
+ControlPoint [id='#|?0|']
 PushPrimitive [value=2 (integer)]
 PrimitiveOp [op=NOT, inputs=1]
 Assume
-ControlPoint [id='#TF']
-Noop""",
+ControlPoint [id='#|?0||?1|']
+Noop [comment='after']""",
 
     """<path:3>
+Noop [comment='before']
 PushPrimitive [value=1 (integer)]
 PrimitiveOp [op=NOT, inputs=1]
 Assume
-ControlPoint [id='#F']
-Noop""",
+ControlPoint [id='#|?1|']
+Noop [comment='after']""",
 ]
 
 
@@ -90,23 +113,24 @@ class Tests(unittest.TestCase):
 
             def action(self) -> None:
                 if self.child is None:
-                    cc.noop()
+                    cc.noop('body')
                 else:
                     self.child.assemble()
 
             def assemble(self) -> None:
-                cc.branch(
+                cc.begin_if(
                     self.condition
-                ).when_true(
+                ).then(
                     self.action
-                ).explore_if()
+                ).end_if()
 
+        cc.noop('before')
         chain = None
         for i in range(N, 0, -1):
             chain = Segment(i, chain)
         chain.assemble()
+        cc.noop('after')
 
-        cc.noop()
         cc.end_of_program()
         return cc.build()
 
