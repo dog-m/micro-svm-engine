@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, final
+from typing import Any, Callable, final
 
 from .instructions import Instruction
 
@@ -10,7 +10,7 @@ EXCEPTION_MATCHER_ALL = '*'
 
 class Node(ABC):
     """
-    A common dummy node for building control-flow graph.
+    Abstract base class for all control-flow graph nodes.
     """
     __slots__ = ('next',)
 
@@ -22,18 +22,23 @@ class Node(ABC):
 
     def get_last(self) -> 'Node':
         node = self
-        while True:
-            if not node.next:
-                return node
+        while node.next is not None:
             node = node.next
+        return node
 
     @abstractmethod
     def clone_self(self, dup_instructions: bool = False) -> 'Node': ...
 
+    @final
     def clone(self, dup_instructions: bool = False) -> 'Node':
-        s_clone = self.clone_self(dup_instructions)
-        s_clone.next = None if self.next is None else self.next.clone(dup_instructions)
-        return s_clone
+        original   = self
+        copy = res = self.clone_self(dup_instructions)
+        while original is not None:
+            copy.next = None if original.next is None else original.next.clone_self(dup_instructions)
+            # ===
+            original = original.next
+            copy     = copy.next
+        return res
 
 
 class MarkerNode(Node, ABC):
@@ -330,12 +335,12 @@ class Switch(Node):
 
 @final
 class CFGNodeResolver:
-    def __init__(self, visitor: object, *, default_handler: Callable[[Node], object | None] | None = None) -> None:
+    def __init__(self, visitor: object, *, default_handler: Callable[[Node], Any] | None = None) -> None:
         assert visitor is not None
         self.visitor = visitor
         self.default_handler = default_handler
 
-    def visit(self, node: Node) -> object | None:
+    def visit(self, node: Node) -> Any:
         name = f"visit_CFG_{node.__class__.__name__}"
         if (method := getattr(self.visitor, name, None)) is not None:
             return method(node)
@@ -344,7 +349,7 @@ class CFGNodeResolver:
         else:
             raise AssertionError(f"Unable to find method '{name}' in visitor")
 
-    def visit_chain(self, starting_node: Node | None) -> object | None:
+    def visit_chain(self, starting_node: Node | None) -> Any:
         res = None
         while starting_node is not None:
             res = self.visit(starting_node)
@@ -358,17 +363,18 @@ class ProgramVisualiser:
 
     def __init__(self, printer: Callable[[str], None] | None = None):
         self.indent = 0
-        self.indent_str: str = ''
         self.resolver = CFGNodeResolver(self, default_handler=self.simple)
         self.printer: Callable[[str], None] = print if printer is None else printer
+        #
+        self._indent_str: str = ''
 
-    def simple(self, value: object) -> None:
-        self.printer(f"{self.indent_str}{value}")
+    def simple(self, value: Any) -> None:
+        self.printer(f"{self._indent_str}{value}")
 
     def update_indentation(self, delta: int) -> None:
         self.indent += delta
         assert self.indent >= 0
-        self.indent_str = self.TAB * self.indent
+        self._indent_str = self.TAB * self.indent
 
     def show(self, title: str, branch: Node | None) -> None:
         self.simple(f"{title}:")

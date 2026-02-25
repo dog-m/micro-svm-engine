@@ -1,14 +1,15 @@
+from abc import ABC
 from enum import Enum, auto
 from typing import final
 
 from .types import PrimitiveTypeInfo, ValueType
 
 
-class Instruction:
+class Instruction(ABC):
+    """
+    Abstract base class for all instructions.
+    """
     __slots__ = tuple()
-
-    def __init__(self) -> None:
-        raise AssertionError('this-should-not-be-called')
 
     def __str__(self) -> str:
         return self.__class__.__name__
@@ -590,7 +591,7 @@ class StringOps(Enum):
     LAST_INDEX_OF = auto(), 2  # str, sub
     STARTS_WITH   = auto(), 2  # str, prefix
     ENDS_WITH     = auto(), 2  # str, suffix
-    COPY          = auto(), 2  # str, offset, count
+    COPY          = auto(), 3  # str, offset, count
     REPLACE_ONCE  = auto(), 3  # str, old, new
     INT_TO_STR    = auto(), 1  # value
     STR_TO_INT    = auto(), 1  # value
