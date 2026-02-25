@@ -1,4 +1,4 @@
-# svm/utils.py
+# micro_svm.utils
 
 ## Overview
 
@@ -17,9 +17,9 @@ The module simplifies debugging, testing and quick experimentation.
 
 ### Contracts
 
-- **Structure registration**: When `register_empty_constructor()` is called, the specified `structure_name` must already exist in `GlobalContext.structures`. The function assumes that the structure's type information has been properly defined in the global context.
-- **Parent constructor signature**: When a parent is specified in `register_empty_constructor()`, the function expects the parent constructor to have the same parameter signature as the current constructor. This is a critical assumption that enables proper delegation during object initialization.
-- **Local variable registration**: After building the subroutine, `simple_program()` automatically registers all local variables in the global context. This ensures that local variables are properly tracked and can be referenced throughout the specification.
+- When `register_empty_constructor()` is called, the specified `structure_name` must already exist in `GlobalContext.structures`. The function assumes that the structure's type information has been properly defined in the global context.
+- When a parent is specified in `register_empty_constructor()`, the function expects the parent constructor to have the same parameter signature as the current constructor. This is a critical assumption that enables proper delegation during object initialization.
+- After building the subroutine, `simple_program()` automatically registers all local variables in the global context. This ensures that local variables are properly tracked and can be referenced throughout the specification.
 
 ## Classes
 
@@ -27,9 +27,9 @@ None.
 
 ## Module-level functions
 
-- `simple_program(ctx: GlobalContext, implementation: Callable[[CompilerContext], None]) -> CompiledSubroutine` - creates a compiled subroutine that serves as an **anonymous** *program entry point* from a user-provided implementation callback and registers all local variables in the global context.
-
 - `register_empty_constructor(ctx: GlobalContext, structure_name: str, *, ctor_name: str = '<ctor>', params_extra: list[tuple[str, TypeInfo]] | None = None, parent: str | None = None) -> None` - registers an empty constructor implementation for a user-defined structure, optionally delegating to a parent class constructor with additional parameters passed in if necessary. **Important:** parent's constructor signature is expected to match that of the specified class/structure.
+
+- `simple_program(ctx: GlobalContext, implementation: Callable[[CompilerContext], None]) -> CompiledSubroutine` - creates a compiled subroutine that serves as an **anonymous** *program entry point* from a user-provided implementation callback and registers all local variables in the global context.
 
 ---
 

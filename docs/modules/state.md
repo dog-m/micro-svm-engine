@@ -1,4 +1,4 @@
-# svm/state.py
+# micro_svm.state
 
 ## Overview
 
@@ -8,11 +8,11 @@
 
 ### Purpose
 
-The `svm/state.py` module and `ProgramState` in particular describes a (partial) program's state.
+The `micro_svm.state` module and `ProgramState` in particular describes a (partial) program's state.
 
 ### Role in the Project
 
-The `svm/state.py` module provides the fundamental data structures for representing and analyzing program states throughout the defect detection lifecycle. These structures serve as the foundation for:
+The `micro_svm.state` module provides the fundamental data structures for representing and analyzing program states throughout the defect detection lifecycle. These structures serve as the foundation for:
 
 - **Path validation**: Verifying whether a sequence of instructions produces the (un)desired target state
 - **State serialization**: Persisting and restoring program states in JSON format
@@ -22,7 +22,7 @@ The `svm/state.py` module provides the fundamental data structures for represent
 - **Type consistency**: `ObjectState.type` must be one of the container or structure type descriptors defined in `types.py` (ArrayTypeInfo, SetTypeInfo, MapTypeInfo, TransformTypeInfo, or StructureTypeInfo)
 - **State compatibility**: `ObjectState.state` must be compatible with the declared `ObjectState.type` - e.g., array types expect list of primitive values, map types expect list of pairs, structure types expect dictionary states
 - **Reference handling**: Object IDs in `ProgramState.objects` and `ProgramState.expected_objects` are string identifiers that must match; "expected" object ID should be present in the "objects" pool
-- **Global variable references**: Global variable values can be either `null`/`0` or a string object ID, never a direct object reference
+- **Global variable references**: Global variable values can be either `null`/`0` or an object ID string, never a direct object state description
 
 ## Classes
 
@@ -34,8 +34,8 @@ Represents the complete state of a single object instance, including its type in
 
 - **Fields:**
   - `id: str` - Unique identifier for this object instance, typically a string representation of a pointer/reference value
-  - `type: ArrayTypeInfo | SetTypeInfo | MapTypeInfo | TransformTypeInfo | StructureTypeInfo` - Type descriptor defining the structure, fields, and container properties of this object
   - `state: InitializerValueType` - Current state value, which varies by type: list for arrays, list of pairs for maps, dictionary for structures, or a single value for primitives
+  - `type: ArrayTypeInfo | SetTypeInfo | MapTypeInfo | TransformTypeInfo | StructureTypeInfo` - Type descriptor defining the structure, fields, and container properties of this object
 
 #### Important implementation details
 
@@ -62,10 +62,10 @@ Represents the complete program state, encompassing global variables, all instan
 #### Public API
 
 - **Fields:**
-  - `global_variables: dict[str, VariableState]` - Dictionary mapping global variable names to their current symbolic values
-  - `expected_objects: dict[str, ObjectState]` - Dictionary mapping **top-level** object IDs to their expected target states (values reference instances in `objects` pool)
-  - `objects: dict[str, ObjectState]` - Dictionary mapping all instantiated object IDs to their current states
   - `allow_object_reuse: bool` - Flag controlling whether object instances can be reused across multiple locations (default: `True`)
+  - `expected_objects: dict[str, ObjectState]` - Dictionary mapping **top-level** object IDs to their expected target states (values reference instances in `objects` pool)
+  - `global_variables: dict[str, VariableState]` - Dictionary mapping global variable names to their current symbolic values
+  - `objects: dict[str, ObjectState]` - Dictionary mapping all instantiated object IDs to their current states
 
 ## Module-level functions
 

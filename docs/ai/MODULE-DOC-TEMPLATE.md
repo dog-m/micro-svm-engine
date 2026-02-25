@@ -1,4 +1,4 @@
-# svm/(file-name).py
+# micro_svm.(module-name)
 
 ## Overview
 
@@ -30,7 +30,7 @@
 (include important information that is specific to this module and is missing/has been omitted in the top-level document)
 
 ## Classes
-(only if present; public interface only)
+(public interface only)
 
 ### `ClassName: BaseClassName1, BaseClassName2, ...`
 
@@ -41,11 +41,11 @@
 
 #### Public API
 
-- **Fields:** (only if there are public fields present)
+- **Fields:** (only if there are public fields present; in alphabetical order)
   - `public_field_name: type` - ... (short summary describing field's purpose; if field type is a `str`-related collection, try your best to infer what primary/key elements represent)
   - ... (other public fields; private fields are not allowed to be listed here; lambda object/callable is a *field*, not a method)
 
-- **Methods:** (only if there are public methods present)
+- **Methods:** (only if there are public methods present; in alphabetical order)
   - `public_method_name (args): return_type` - ... (short summary describing method's purpose, side-effects and overall mechanics)
   - ... (other public methods; private ones shouldn't be listed here)
 
@@ -58,7 +58,7 @@
 ### ... (other publicly-accessible classes)
 
 ## Module-level functions
-(only if present; public interface only)
+(in alphabetical order; public interface only)
 
 - `function_name (arg: type, ...): return_type` - ... (short summary describing its purpose, side-effects and overall mechanics)
 - ... (other public static functions)
