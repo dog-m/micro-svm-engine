@@ -32,7 +32,7 @@ struct 'std.List' extends 'std.Object':
         SubroutineEnter
         VariableWrite [dst=std.List.<ctor>#this (local)]
         VariableRead [src=std.List.<ctor>#this (local)]
-        CallStatic [func=std.Object.<ctor>, argc=1]
+        <call-static> [func=std.Object.<ctor>, argc=1]
         VariableRead [src=std.List.<ctor>#this (local)]
         PushPrimitive [value=0 (integer)]
         ArrayOperation [op=NEW, type=ref]
@@ -96,7 +96,7 @@ struct 'std.List' extends 'std.Object':
                         Assume
                         VariableRead [src=std.List.equals#~local4 (local)]
                         VariableRead [src=std.List.equals#~local5 (local)]
-                        CallVirtual [func=std.Object.equals, argc=2]
+                        <call-virtual> [func=std.Object.equals, argc=2]
                         VariableWrite [dst=std.List.equals#~local6 (local)]
                         VariableRead [src=std.List.equals#~local6 (local)]
                         VariableWrite [dst=std.List.equals#~result (local)]

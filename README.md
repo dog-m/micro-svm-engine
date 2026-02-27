@@ -67,7 +67,3 @@ pip install micro-svm
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-*AI usage disclosure: 100% of code and ~50% of documentation were written by a <u>human</u> developer.*

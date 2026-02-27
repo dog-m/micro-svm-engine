@@ -84,7 +84,7 @@ A marker node that terminates a path and marks it as a failing candidate.
 
 - **Methods:**
   - Inherits all methods from `MarkerNode`
-  - `__str__() -> str` - Returns a string representation in the format `<marker: failure [metadata: {repr(self.metadata)}]>`
+  - `__str__() -> str` - Returns a string representation in the format `<marker: failure> [metadata=...]`
   - `clone_self(dup_instructions: bool = False) -> FailurePath` - Creates a new `FailurePath` instance with the same metadata
 
 #### Important implementation details
@@ -121,7 +121,7 @@ Represents a static function call where arguments are automatically pulled from 
 
 - **Methods:**
   - Inherits all methods from `Node`
-  - `__str__() -> str` - Returns a string representation in the format `CallStatic [func={self.function_name}, argc={self.argument_count}]`
+  - `__str__() -> str` - Returns a string representation in the format `<call-static> [func={function_name}, argc={argument_count}]`
   - `clone_self(dup_instructions: bool = False) -> CallStatic` - Creates a new `CallStatic` instance with the same function name and argument count
 
 #### Important implementation details
@@ -141,7 +141,7 @@ Represents a virtual method call where arguments are automatically pulled from t
 
 - **Methods:**
   - Inherits all methods from `Node`
-  - `__str__() -> str` - Returns a string representation in the format `CallVirtual [func={self.structure_name}.{self.method_name}, argc={self.argument_count}]`
+  - `__str__() -> str` - Returns a string representation in the format `<call-virtual> [func={structure_name}.{method_name}, argc={argument_count}]`
   - `clone_self(dup_instructions: bool = False) -> CallVirtual` - Creates a new `CallVirtual` instance with the same structure name, method name, and argument count
 
 #### Important implementation details
@@ -196,7 +196,7 @@ A marker node that signals the end of a single iteration in a loop.
 
 - **Methods:**
   - Inherits all methods from `MarkerNode`
-  - `__str__() -> str` - Returns a string representation in the format `<marker: loop-end [loop=#{self.loop_id}]>`
+  - `__str__() -> str` - Returns a string representation in the format `<marker: loop-end> [loop=#{loop_id}]`
   - `clone_self(dup_instructions: bool = False) -> MarkerLoopEnd` - Creates a new `MarkerLoopEnd` instance with the same loop identifier
 
 #### Important implementation details
@@ -214,7 +214,7 @@ A marker node that signals the end of a single iteration in a loop, providing ad
 
 - **Methods:**
   - Inherits all methods from `MarkerNode`
-  - `__str__() -> str` - Returns a string representation in the format `<marker: loop-iter-end [loop=#{self.loop_id}]>`
+  - `__str__() -> str` - Returns a string representation in the format `<marker: loop-iter-end> [loop=#{loop_id}]`
   - `clone_self(dup_instructions: bool = False) -> MarkerLoopIterationEnd` - Creates a new `MarkerLoopIterationEnd` instance with the same loop identifier
 
 #### Important implementation details
@@ -232,7 +232,7 @@ Represents a break instruction for terminating a loop during path exploration.
 
 - **Methods:**
   - Inherits all methods from `Node`
-  - `__str__() -> str` - Returns a string representation in the format `<break> [loop=#{self.loop_id}]`
+  - `__str__() -> str` - Returns a string representation in the format `<break> [loop=#{loop_id}]`
   - `clone_self(dup_instructions: bool = False) -> Break` - Creates a new `Break` instance with the same loop identifier
 
 #### Important implementation details
@@ -250,7 +250,7 @@ Represents a continue instruction for skipping to the next iteration of a loop d
 
 - **Methods:**
   - Inherits all methods from `Node`
-  - `__str__() -> str` - Returns a string representation in the format `<continue> [loop=#{self.loop_id}]`
+  - `__str__() -> str` - Returns a string representation in the format `<continue> [loop=#{loop_id}]`
   - `clone_self(dup_instructions: bool = False) -> Continue` - Creates a new `Continue` instance with the same loop identifier
 
 #### Important implementation details
@@ -294,6 +294,25 @@ A marker node that signals the end of a guarded body in a try-block.
 
 `MarkerTryBlockEnd` nodes mark the end of the try block's guarded body, typically placed after the body. These nodes help manage the *boundary* between the try block and the rest of the code, ensuring proper exception handling semantics during path exploration.
 
+### `Switch: Node`
+
+A flexible control flow switching node that evaluates a value and dispatches to different handlers based on conditions.
+
+#### Public API
+
+- **Fields:**
+  - `value_source: Node | None` - The node representing the value to be evaluated
+  - `cumulative: bool` - A flag indicating whether case handlers should be cumulative (default `False`)
+  - `cases: list[tuple[Node, Node]]` - A list of tuples where each tuple contains a condition node and its corresponding handler node
+
+- **Methods:**
+  - Inherits all methods from `Node`
+  - `clone_self(dup_instructions: bool = False) -> Switch` - Creates a new `Switch` node with cloned value source and cases
+
+#### Important implementation details
+
+`Switch` nodes implement flexible control flow switching similar to switch-case statements in programming languages. The `value_source` field contains the node that produces the value to be evaluated, while `cases` contains pairs of condition and handler nodes. When `cumulative` is `True`, handlers are evaluated cumulatively, meaning that if a condition matches, conditions for previous cases would also be evaluated. Otherwise, only a single condition check is dispatched for every program path produced. This is useful for implementing order-dependent statements (eg., type matchers).
+
 ### `Throw: Node`
 
 Represents an exception throw operation for exploring exception propagation.
@@ -320,11 +339,11 @@ A visitor pattern implementation for traversing and visiting CFG nodes.
 
 - **Fields:**
   - `visitor: object` - The visitor object that will receive callbacks for each node type
-  - `default_handler: Callable[[Node], object | None] | None` - A default handler function to use if no specific visitor method is found for a node type (default `None`)
+  - `default_handler: Callable[[Node], Any] | None` - A default handler function to use if no specific visitor method is found for a node type (default `None`)
 
 - **Methods:**
-  - `visit(node: Node) -> object | None` - Visits a single node by calling the appropriate `visit_CFG_*` method on the visitor; if no such method exists and a default handler is provided, calls the default handler; otherwise raises an `AssertionError`
-  - `visit_chain(starting_node: Node | None) -> object | None` - Traverses the linked list starting from `starting_node`, visiting each node in sequence and returning the result of the last visit
+  - `visit(node: Node) -> Any` - Visits a single node by calling the appropriate `visit_CFG_*` method on the visitor; if no such method exists and a default handler is provided, calls the default handler; otherwise raises an `AssertionError`
+  - `visit_chain(starting_node: Node | None) -> Any` - Traverses the linked list starting from `starting_node`, visiting each node in sequence and returning the result of the last visit
 
 #### Important implementation details
 

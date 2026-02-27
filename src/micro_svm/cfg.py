@@ -74,7 +74,7 @@ class FailurePath(MarkerNode):
         self.metadata = metadata
 
     def __str__(self) -> str:
-        return f"<marker: failure [metadata: {repr(self.metadata)}]>"
+        return f"<marker: failure> [metadata={repr(self.metadata)}]"
 
     def clone_self(self, dup_instructions: bool = False):
         return FailurePath(self.metadata)
@@ -110,7 +110,7 @@ class CallStatic(Node):
         self.argument_count = argc
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} [func={self.function_name}, argc={self.argument_count}]"
+        return f"<call-static> [func={self.function_name}, argc={self.argument_count}]"
 
     def clone_self(self, dup_instructions: bool = False):
         return CallStatic(self.function_name, self.argument_count)
@@ -130,7 +130,7 @@ class CallVirtual(Node):
         self.argument_count = argc
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} [func={self.structure_name}.{self.method_name}, argc={self.argument_count}]"
+        return f"<call-virtual> [func={self.structure_name}.{self.method_name}, argc={self.argument_count}]"
 
     def clone_self(self, dup_instructions: bool = False):
         return CallVirtual(self.structure_name, self.method_name, self.argument_count)
@@ -188,7 +188,7 @@ class MarkerLoopEnd(MarkerNode):
         self.loop_id = loop_id
 
     def __str__(self) -> str:
-        return f"<marker: loop-end [loop=#{self.loop_id}]>"
+        return f"<marker: loop-end> [loop=#{self.loop_id}]"
 
     def clone_self(self, dup_instructions: bool = False):
         return MarkerLoopEnd(self.loop_id)
@@ -206,7 +206,7 @@ class MarkerLoopIterationEnd(MarkerNode):
         self.loop_id = loop_id
 
     def __str__(self) -> str:
-        return f"<marker: loop-iter-end [loop=#{self.loop_id}]>"
+        return f"<marker: loop-iter-end> [loop=#{self.loop_id}]"
 
     def clone_self(self, dup_instructions: bool = False):
         return MarkerLoopIterationEnd(self.loop_id)
