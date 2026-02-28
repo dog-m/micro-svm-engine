@@ -52,6 +52,7 @@ pip install micro-svm
   - check if they *might* have happened (i.e., using `CompilerContext.get_fault_status/clear_fault_status`),
   - ignore faulty operations.
 - Exceptions regarding null-dereferencing, invalid array indexing and alike cannot be raised and caught automatically. It is advised to use `CompilerContext.get_fault_status` and `throw` to raise a suitable exception object. Note that `get_fault_status` is unhelpful unless `SymbolicStateMachine.fault_mode` is set to `STORE`.
+- No tools for managing dynamic reflection operations (field access by symbolic name strings, method creation, etc.).
 
 ## Cite
 
