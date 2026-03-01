@@ -2439,8 +2439,11 @@ class SymbolicStateMachine:
 
 
     def visit_instruction_ClearStackToBoundary(self, inst: ClearStackToBoundary) -> None:
-        while len(self._stack) > 0 and self._stack[-1] is not inst.boundary:
-            self._stack.pop()
+        if inst.boundary is None:
+            self._stack.clear()
+        else:
+            while len(self._stack) > 0 and inst.boundary != self._stack[-1]:
+                self._stack.pop()
 
 
     def visit_instruction_PushStackBoundary(self, inst: PushStackBoundary) -> None:

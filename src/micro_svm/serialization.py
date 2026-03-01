@@ -321,12 +321,12 @@ class InstructionEncoder:
 
     def _encode_ClearStackToBoundary(self, inst: ClearStackToBoundary):
         return {
-            'boundary': inst.boundary,
+            'boundary': None if inst.boundary is None else inst.boundary.uid,
         }
 
     def _encode_PushStackBoundary(self, inst: PushStackBoundary):
         return {
-            'boundary': inst.boundary,
+            'boundary': inst.boundary.uid,
         }
 
     def _encode_StringOperation(self, inst: StringOperation):
@@ -833,12 +833,12 @@ class InstructionDecoder:
 
     def _decode_ClearStackToBoundary(self, info: dict[str, object], ctor: type[ClearStackToBoundary]):
         return ctor(
-            info['boundary'],
+            None if (uid := info['boundary']) is None else StackBoundary(uid),
         )
 
     def _decode_PushStackBoundary(self, info: dict[str, object], ctor: type[PushStackBoundary]):
         return ctor(
-            info['boundary'],
+            StackBoundary(info['boundary']),
         )
 
     def _decode_StringOperation(self, info: dict[str, object], ctor: type[StringOperation]):

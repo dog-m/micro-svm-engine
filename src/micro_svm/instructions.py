@@ -216,8 +216,8 @@ class Assume(Instruction):
 @final
 class ContainerGetSize(Instruction):
     """
-    Read the current size of the container.
-    The container reference will be pulled from the top of the execution stack.
+    Read the current size of a container.
+    Container reference will be pulled from the top of the execution stack.
     The result will be placed back on top of the stack.
     """
     __slots__ = tuple()
@@ -265,8 +265,8 @@ class SetOps(Enum):
     ANY_ITEM     = auto(), 1  # ref
     ADD          = auto(), 2  # ref, item
     REMOVE       = auto(), 2  # ref, item
-    UNION        = auto(), 2  # in_a, in_b, out_c
-    INTERSECTION = auto(), 2  # in_a, in_b, out_c
+    UNION        = auto(), 3  # in_a, in_b, out_c
+    INTERSECTION = auto(), 3  # in_a, in_b, out_c
     EQUALS       = auto(), 2  # in_a, in_b
 
     def get_input_count(self) -> int:
@@ -302,8 +302,8 @@ class MapOps(Enum):
     HAS_PAIR     = auto(), 3  # ref, key, value
     ANY_KEY      = auto(), 1  # ref
     ANY_VALUE    = auto(), 1  # ref
-    UNION        = auto(), 2  # in_a, in_b, out_c
-    INTERSECTION = auto(), 2  # in_a, in_b, out_c
+    UNION        = auto(), 3  # in_a, in_b, out_c
+    INTERSECTION = auto(), 3  # in_a, in_b, out_c
     EQUALS       = auto(), 2  # in_a, in_b
 
     def get_input_count(self) -> int:
@@ -378,7 +378,7 @@ class NewInstance(Instruction):
 @final
 class FreeInstance(Instruction):
     """
-    Mark an object instance as "freed". An object cannot be "freed" more than once.
+    Mark an instance as "freed". An object cannot be "freed" more than once.
     Reference to the instance will be pulled from the top of the execution stack.
     """
     __slots__ = tuple()
@@ -391,7 +391,7 @@ class FreeInstance(Instruction):
 @final
 class Copy(Instruction):
     """
-    Makes N copies of a value from the X'th position of the execution STACK (starting from the top) putting them back on top.
+    Makes N copies of a value from the X'th position of the execution stack (starting from the top) putting them back on top.
     """
     __slots__ = ('number_of_copies', 'stack_position')
 
@@ -481,7 +481,7 @@ class SimpleDiff(Instruction):
 @final
 class DistinctValues(Instruction):
     """
-    Compare N values and return a boolean value indicating whether all values are distinct.
+    Compares N values and returns a boolean value indicating whether all values are distinct.
     The values to compare are pulled from the top of the execution stack.
     The result is placed back on top.
     """
@@ -549,18 +549,25 @@ class ExceptionWrite(Instruction):
 
 @final
 class StackBoundary:
-    __slots__ = tuple()
+    __slots__ = ('uid',)
+
+    def __init__(self, uid: int | None = None):
+        self.uid = id(self) if uid is None else uid
 
     def __str__(self) -> str:
-        return f"<stack-boundary#{id(self):016x}>"
+        return f"<stack-boundary#{self.uid:016x}>"
+
+    def __eq__(self, value) -> bool:
+        return not self.__ne__(value)
+
+    def __ne__(self, value) -> bool:
+        return not isinstance(value, StackBoundary) or self.uid != value.uid
 
 
 @final
 class ClearStackToBoundary(Instruction):
     """
     Clear the execution stack up to the specified stack boundary.
-
-    **Warning:** the boundary object is compared against stack elements using the "is" operator!
     """
     __slots__ = ('boundary',)
 
