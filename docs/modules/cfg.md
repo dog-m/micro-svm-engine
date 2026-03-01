@@ -16,7 +16,7 @@ The module serves as the data structure layer for the symbolic virtual machine's
 
 ### Contracts
 
-The module assumes that all node types are immutable after creation, with cloning performed via `clone_self()` and `clone()` methods. The `CFGNodeResolver` expects the visitor object to implement specific `visit_CFG_*` methods for each node type, or provide a default handler. The `ProgramVisualiser` assumes that instruction objects implement `__str__()` methods that produce human-readable output suitable for display.
+The module assumes that all node types are immutable after creation, with cloning performed via `clone_self()` and `clone()` methods. The `CFGNodeResolver` expects the visitor object to implement specific `visit_CFG_<ClassName>` methods for each node type, or provide a default handler. The `ProgramVisualiser` assumes that instruction objects implement `__str__()` methods that produce human-readable output suitable for display.
 
 ## Classes
 
@@ -342,7 +342,7 @@ A visitor pattern implementation for traversing and visiting CFG nodes.
   - `default_handler: Callable[[Node], Any] | None` - A default handler function to use if no specific visitor method is found for a node type (default `None`)
 
 - **Methods:**
-  - `visit(node: Node) -> Any` - Visits a single node by calling the appropriate `visit_CFG_*` method on the visitor; if no such method exists and a default handler is provided, calls the default handler; otherwise raises an `AssertionError`
+  - `visit(node: Node) -> Any` - Visits a single node by calling the appropriate `visit_CFG_<ClassName>` method on the visitor; if no such method exists and a default handler is provided, calls the default handler; otherwise raises an `AssertionError`
   - `visit_chain(starting_node: Node | None) -> Any` - Traverses the linked list starting from `starting_node`, visiting each node in sequence and returning the result of the last visit
 
 #### Important implementation details
