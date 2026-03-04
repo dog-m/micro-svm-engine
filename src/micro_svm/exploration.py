@@ -207,6 +207,8 @@ class PathEnumerator:
         if self.on_failing_path is not None:
             if self._can_produce_more_paths():
                 stack = self._current_path.call_stack
+                # TODO: not sure how to link to make the failure point precise enough
+                # branch_id_seq = self._current_path.branch_id_stack
                 self.on_failing_path(ProgramPath(self._current_path.steps), self, node.metadata, stack)
 
 

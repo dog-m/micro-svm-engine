@@ -100,9 +100,12 @@ SOLUTION_TAGS = { SOLUTION_TAG, }
 
 class DefectAnalyzerConfig:
     def __init__(self):
-        self.max_collection_size = 50
-        self.solver_try_count    = 21
-        self.timeout             = 2.1 * 1000
+        self.max_collection_size   = 50
+        self.solver_try_count      = 21
+        self.timeout               = 2.1 * 1000
+        self.loop_max_iter_count   = 17
+        self.loop_reduction_factor = 10.0
+        self.branching_budget      = 10
 
 
 
@@ -385,12 +388,12 @@ class DefectAnalyzer:
 
         print(func)
         pe = PathEnumerator(prog, self.th_resolver)
-        pe.config.loop_max_iter_count   = 1
-        pe.config.loop_reduction_factor = 1  # this is specific to stack-overflow error
+        pe.config.loop_max_iter_count   = self.config.loop_max_iter_count
+        pe.config.loop_reduction_factor = self.config.loop_reduction_factor
         pe.on_failing_path = register_path
 
         print('[i] Exploring', end='', flush=True)
-        pe.explore(branching_budget=10)
+        pe.explore(branching_budget=self.config.branching_budget)
         print(flush=True)
 
         print('[i] Found', len(failing_paths), 'potentially failing path(s).')

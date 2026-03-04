@@ -70,6 +70,9 @@ def main() -> None:
     handler = DefectHandler(list_spec.__spec__.name.replace('.', '/'))
     analyzer = DefectAnalyzer(spec)
     analyzer.on_defect = handler.process_defect
+    # this is specific to stack-overflow error
+    analyzer.config.loop_max_iter_count   = 1
+    analyzer.config.loop_reduction_factor = 1
 
     ta = time()
     analyzer.analyze_function('std.List.equals')
