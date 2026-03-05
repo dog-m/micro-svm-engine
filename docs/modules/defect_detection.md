@@ -63,7 +63,7 @@ The `DefectAnalyzer` class is the central component of the defect detection syst
 The `analyze_function` method implements a multi-stage analysis pipeline:
 
 1. Creates a symbolic program that includes a call to the target function, assuming symbolic values for all parameters and registering local variables with special tags for solution tracking.
-2. Explores all possible execution paths through the compiled program, collecting paths that lead to `error()` calls or other failure termination points.
+2. Explores all possible execution paths through the compiled program, collecting paths that lead to `error()` calls or other failure termination points. The exploration respects the `loop_max_iter_count`, `loop_reduction_factor`, and `branching_budget` configuration parameters (see `DefectAnalyzerConfig`).
 3. For each failing path, creates a `SymbolicStateMachine` instance and executes the path instructions to verify the path is actually executable.
 4. State Optimization: applies reduction tactics to simplify the program state before decoding:
    - **Object Count Reduction**: Reduces the number of unique object instances by asserting that fewer distinct references exist than currently present
@@ -80,6 +80,9 @@ This class encapsulates all configurable parameters for defect detection analysi
 #### Public API
 
 - **Fields:**
+  - `branching_budget: int` - Maximum number of branches to explore (default: `10`). Controls exploration breadth
+  - `loop_max_iter_count: int` - Maximum number of loop iterations to explore (default: `17`). Limits path explosion in loops
+  - `loop_reduction_factor: float` - Factor for reducing loop iteration counts during exploration (default: `10.0`). Helps manage state space
   - `max_collection_size: int` - Maximum allowed size for any container (default: `50`). Used to constrain collection growth during state optimization
   - `solver_try_count: int` - Number of solver attempts for each constraint (default: `21`). Controls solver robustness
   - `timeout: float` - Solver timeout in milliseconds (default: `2100` ms). Applied to each symbolic execution attempt
