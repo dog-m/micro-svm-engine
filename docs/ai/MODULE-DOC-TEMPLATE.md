@@ -49,7 +49,7 @@
   - `public_method_name (args): return_type` - ... (short summary describing method's purpose, side-effects and overall mechanics)
   - ... (other public methods; private ones shouldn't be listed here)
 
-#### Important implementation details
+#### Implementation details
 
 ...
 (this subsection should **only** be present if this class is **non-trivial** and its implementation **deserves special attention**)

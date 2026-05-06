@@ -58,7 +58,7 @@ The `DefectAnalyzer` class is the central component of the defect detection syst
 - **Methods:**
   - `analyze_function(function_name: str) -> None` - Analyzes a single function for defects by exploring all execution paths, executing them symbolically, and reporting any failures found
 
-#### Important implementation details
+#### Implementation details
 
 The `analyze_function` method implements a multi-stage analysis pipeline:
 
@@ -102,7 +102,7 @@ This class represents a discovered defect with all relevant information for repo
 - **Methods:**
   - `as_string(ctx: GlobalContext) -> str` - Returns a human-readable string representation of the failure, including function name and formatted arguments
 
-#### Important implementation details
+#### Implementation details
 
 The `as_string` method formats the failure in a way that can be used as a test case or example. For static functions, it produces output like `std.List.makeFrom(#000)`, while for instance methods it produces `#000.equals(#000)`. The method uses the `GlobalContext.functions` mapping to access parameter type information for proper argument formatting.
 
@@ -115,7 +115,7 @@ The `RefIdGenerator` class generates unique string identifiers for object refere
 - **Methods:**
   - `get(ref: int) -> str | None` - Returns a string ID for the given reference, generating a new one if necessary. Returns `None` for reference value `0` (null)
 
-#### Important implementation details
+#### Implementation details
 
 The generator uses hexadecimal encoding with zero-padding (e.g., `#000`, `#001`) to create human-readable object identifiers. This can be useful for debugging and presenting failure states in logs.
 
@@ -134,7 +134,7 @@ The `ReferenceHandlePool` class manages the creation of symbolic variable handle
   - `get() -> VariableInfo` - Returns a new variable handle, creating it if necessary
   - `reset() -> None` - Resets the pool to allow reuse of handles
 
-#### Important implementation details
+#### Implementation details
 
 The pool maintains a list of `VariableInfo` objects representing symbolic variables. Each handle is registered with the global context and can be used to create symbolic expressions for reference grounding. The `reset()` method is called between optimization attempts to allow reuse of the same pool.
 

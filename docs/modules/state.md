@@ -37,7 +37,7 @@ Represents the complete state of a single object instance, including its type in
   - `state: InitializerValueType` - Current state value, which varies by type: list for arrays, list of pairs for maps, dictionary for structures, or a single value for primitives
   - `type: ArrayTypeInfo | SetTypeInfo | MapTypeInfo | TransformTypeInfo | StructureTypeInfo` - Type descriptor defining the structure, fields, and container properties of this object
 
-#### Important implementation details
+#### Implementation details
 
 `ObjectState` uses `hash_str()` function for computing hash values which implements simple Java-like hashing algorithm.
 
@@ -51,7 +51,7 @@ Represents the current value of a (global) variable in the program state, includ
   - `name: str` - Global variable name
   - `state: ValueType` - Current symbolic value, which can be a primitive (integer, boolean, string, etc.) or a reference to an object ID
 
-#### Important implementation details
+#### Implementation details
 
 `VariableState` uses `hash_str()` function for computing hash values.
 
