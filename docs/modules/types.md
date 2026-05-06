@@ -98,6 +98,30 @@ Represents untyped/generic references that are serialized as `ref` in the specif
 
 `UntypedReferenceTypeInfo` represents references are treated as generic/opaque object handles that can be compared and assigned but type of which isn't needed to be statically determined prior to program "execution". These references are serialized as the string `"ref"` in the JSON specification format and use integer representation internally for solver operations.
 
+### `TypedReferenceTypeInfo: PrimitiveTypeInfo`
+
+Represents typed references that point to specific structure or class types.
+
+#### Public API
+
+- **Fields:**
+  - `convertor: Callable[[object], z3.ExprRef]` - `z3.IntVal`
+  - `default_value: z3.ExprRef` - Always `z3.IntVal(0)`
+  - `default_raw: object` - Always `0`
+  - `name: str` - Always `ref`
+  - `target_type: TypeInfo` - The type of the object that this reference points to
+  - `z3_sort: z3.SortRef` - `z3.IntSort()`
+
+- **Methods:**
+  - `__str__() -> str` - Returns `ref<{target_type}>` (e.g., `ref<array<integer>>` or `ref<struct="std.List">`)
+  - `is_reference() -> bool` - Returns `True`
+
+#### Implementation details
+
+`TypedReferenceTypeInfo` represents references with known object types, enabling type-safe operations and validation. Unlike untyped references, these ones carry type information that can be used during program path exploration to validate type constraints and resolve virtual calls.
+
+The class enforces a constraint that references cannot point to primitive types.
+
 ### `ArrayTypeInfo: TypeInfo`
 
 Represents array collections with a fixed element type and size.
@@ -122,30 +146,6 @@ Represents array collections with a fixed element type and size.
 The class uses Z3's array sort semantics where array access is represented as `select(select(typed_array_pool, array_ref), index)` and array updates are represented as a sequence of quantifier expressions on that array, "assigning" elements over to an "updated" instance. This approach demonstrated better performance compared to using `store(...)` expressions.
 
 The underlying array is *effectively* infinite with respect to the `index_type` domain (default is `integer`). Array size starts off as `0` and should be managed manually by the user specification/program model.
-
-### `TypedReferenceTypeInfo: PrimitiveTypeInfo`
-
-Represents typed references that point to specific structure or class types.
-
-#### Public API
-
-- **Fields:**
-  - `convertor: Callable[[object], z3.ExprRef]` - `z3.IntVal`
-  - `default_value: z3.ExprRef` - Always `z3.IntVal(0)`
-  - `default_raw: object` - Always `0`
-  - `name: str` - Always `ref`
-  - `target_type: TypeInfo` - The type of the object that this reference points to
-  - `z3_sort: z3.SortRef` - `z3.IntSort()`
-
-- **Methods:**
-  - `__str__() -> str` - Returns `ref<{target_type}>` (e.g., `ref<array<integer>>` or `ref<struct="std.List">`)
-  - `is_reference() -> bool` - Returns `True`
-
-#### Implementation details
-
-`TypedReferenceTypeInfo` represents references with known object types, enabling type-safe operations and validation. Unlike untyped references, these ones carry type information that can be used during program path exploration to validate type constraints and resolve virtual calls.
-
-The class enforces a constraint that references cannot point to primitive types.
 
 ### `SetTypeInfo: TypeInfo`
 
