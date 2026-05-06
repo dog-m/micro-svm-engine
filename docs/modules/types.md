@@ -16,7 +16,6 @@ This module is central to the symbolic virtual machine's operation, providing th
 
 - **Global Context**: Type definitions are registered in `GlobalContext` to describe user-defined structures and classes, including their fields, parent relationships, and method signatures
 - **Symbolic Execution**: Type information is used during path exploration to validate type constraints, resolve virtual calls via `TypeHierarchyResolver`, and generate appropriate solver expressions for type-specific operations
-- **State Reconstruction**: Type metadata enables the reconstruction algorithm to properly initialize objects, containers, and structures according to their declared types and field layouts
 - **Serialization**: Type information is serialized to JSON format to describe program specifications and target states
 
 The type system is tightly integrated with the Z3 solver, where each type maps to an appropriate Z3 sort (e.g., `z3.BoolSort()` for booleans, `z3.IntSort()` for integers, `z3.ArraySort()` for collections).
@@ -27,7 +26,7 @@ The type system is tightly integrated with the Z3 solver, where each type maps t
 - **Z3 Integration**: Each type must provide a valid Z3 sort reference via the `z3_sort` attribute. The `default_value` attribute must be a valid Z3 expression representing the type's zero value
 - **Collection Constraints**: Collection types (`ArrayTypeInfo`, `SetTypeInfo`, `MapTypeInfo`, `TransformTypeInfo`) require primitive item types and use Z3 array sorts with boolean presence indicators
 - **Structure Constraints**: Structure types must have valid parent structure names and field definitions. Field types must be primitive types, and field names must be unique within their structure
-- **Reference Constraints**: `UntypedReferenceTypeInfo` represents opaque references (serialized as `ref`) and uses integer representation. `KnownReferenceTypeInfo` represents typed references and must target non-primitive types
+- **Reference Constraints**: `UntypedReferenceTypeInfo` represents opaque generic references (serialized as `ref`). `KnownReferenceTypeInfo` represents typed references and must target non-primitive types. Both use integer representation
 
 ## Classes
 
@@ -144,7 +143,7 @@ Represents typed references that point to specific structure or class types.
 
 #### Implementation details
 
-`TypedReferenceTypeInfo` represents references with known object types, enabling type-safe operations and validation. Unlike untyped references, these ones carry type information that can be used during program path enumeration to validate type constraints and resolve virtual calls.
+`TypedReferenceTypeInfo` represents references with known object types, enabling type-safe operations and validation. Unlike untyped references, these ones carry type information that can be used during program path exploration to validate type constraints and resolve virtual calls.
 
 The class enforces a constraint that references cannot point to primitive types.
 
@@ -256,7 +255,7 @@ Represents user-defined structures or classes with fields, methods, and inherita
 
 `StructureTypeInfo` represents user-defined structures or classes in the type system. It supports inheritance through the `parents` list, which follows Python's method resolution order (MRO) where parent classes are searched in declaration order.
 
-The class maintains separate dictionaries for `methods` and `static_methods`, enabling both instance and static method definitions. Method signatures are stored as full strings for direct binding, which simplifies method lookup during program path enumeration.
+The class maintains separate dictionaries for `methods` and `static_methods`, enabling both instance and static method definitions. Method signatures are stored as full strings for direct binding, which simplifies method lookup during program path exploration.
 
 ## Module-level functions
 
