@@ -41,12 +41,12 @@ class TypeEncoder:
         if type is None:
             return None
         else:
-            if isinstance(type, KnownReferenceTypeInfo):
+            if isinstance(type, TypedReferenceTypeInfo):
                 return {
                     '_': 'ref',
                     'item': self.encode_type_reference(type.target_type),
                 }
-            elif isinstance(type, OpaqueReferenceTypeInfo):
+            elif isinstance(type, UntypedReferenceTypeInfo):
                 return {
                     '_': 'ref',
                 }
@@ -1046,7 +1046,7 @@ class ProgramStateDecoder:
 
     def _validate_state_for_type(self, state: object, type: TypeInfo) -> InitializerValueType:
         is_valid = False
-        if isinstance(type, (OpaqueReferenceTypeInfo, KnownReferenceTypeInfo)):
+        if isinstance(type, (UntypedReferenceTypeInfo, TypedReferenceTypeInfo)):
             # a name of an instance from the object pool or other variable name or 'null'
             is_valid = isinstance(state, str) or state is None
         elif isinstance(type, StructureTypeInfo):

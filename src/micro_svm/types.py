@@ -58,38 +58,28 @@ class PrimitiveTypeInfo(TypeInfo):
 
 
 @final
-class OpaqueReferenceTypeInfo(PrimitiveTypeInfo):
-    def __init__(self, name: str) -> None:
-        super().__init__(name, z3.IntSort(), 0, z3.IntVal)
+class UntypedReferenceTypeInfo(PrimitiveTypeInfo):
+    def __init__(self) -> None:
+        super().__init__('ref', z3.IntSort(), 0, z3.IntVal)
 
     def is_reference(self):
         return True
 
 
 
-boolean   = PrimitiveTypeInfo('boolean', z3.BoolSort(),     False, z3.BoolVal)
-int8      = PrimitiveTypeInfo('int8',    z3.BitVecSort(8),  0,     lambda x: z3.BitVecVal(x, 8))
-int16     = PrimitiveTypeInfo('int16',   z3.BitVecSort(16), 0,     lambda x: z3.BitVecVal(x, 16))
-int32     = PrimitiveTypeInfo('int32',   z3.BitVecSort(32), 0,     lambda x: z3.BitVecVal(x, 32))
-int64     = PrimitiveTypeInfo('int64',   z3.BitVecSort(64), 0,     lambda x: z3.BitVecVal(x, 64))
-integer   = PrimitiveTypeInfo('integer', z3.IntSort(),      0,     z3.IntVal)
-real      = PrimitiveTypeInfo('real',    z3.RealSort(),     0.0,   z3.RealVal)
-char      = PrimitiveTypeInfo('char',    z3.CharSort(),     '\0',  z3.CharVal)
-string    = PrimitiveTypeInfo('string',  z3.StringSort(),   '',    z3.StringVal)
-reference = OpaqueReferenceTypeInfo('ref')
-
 PRIMITIVE_TYPES = [
-    boolean,
-    int8,
-    int16,
-    int32,
-    int64,
-    integer,
-    real,
-    char,
-    string,
-    reference,
+    boolean   := PrimitiveTypeInfo('boolean', z3.BoolSort(),     False, z3.BoolVal),
+    int8      := PrimitiveTypeInfo('int8',    z3.BitVecSort(8),  0,     lambda x: z3.BitVecVal(x, 8)),
+    int16     := PrimitiveTypeInfo('int16',   z3.BitVecSort(16), 0,     lambda x: z3.BitVecVal(x, 16)),
+    int32     := PrimitiveTypeInfo('int32',   z3.BitVecSort(32), 0,     lambda x: z3.BitVecVal(x, 32)),
+    int64     := PrimitiveTypeInfo('int64',   z3.BitVecSort(64), 0,     lambda x: z3.BitVecVal(x, 64)),
+    integer   := PrimitiveTypeInfo('integer', z3.IntSort(),      0,     z3.IntVal),
+    real      := PrimitiveTypeInfo('real',    z3.RealSort(),     0.0,   z3.RealVal),
+    char      := PrimitiveTypeInfo('char',    z3.CharSort(),     '\0',  z3.CharVal),
+    string    := PrimitiveTypeInfo('string',  z3.StringSort(),   '',    z3.StringVal),
+    reference := UntypedReferenceTypeInfo(),
 ]
+
 
 
 @final
@@ -113,7 +103,7 @@ def array(element_type: TypeInfo):
 
 
 @final
-class KnownReferenceTypeInfo(PrimitiveTypeInfo):
+class TypedReferenceTypeInfo(PrimitiveTypeInfo):
     def __init__(self, target: TypeInfo) -> None:
         super().__init__(reference.name, reference.z3_sort, reference.default_raw, reference.convertor)
         assert target is not None
@@ -129,7 +119,7 @@ class KnownReferenceTypeInfo(PrimitiveTypeInfo):
 
 
 def ref(type: TypeInfo):
-    return KnownReferenceTypeInfo(type)
+    return TypedReferenceTypeInfo(type)
 
 
 
@@ -212,7 +202,7 @@ def field(name: str, type: TypeInfo, *, tags: set[str] | None = None):
 @final
 class StructureTypeInfo(TypeInfo):
     def __init__(self, name: str, parents: list[str]):
-        super().__init__(reference.name, reference.z3_sort, reference.default_value)
+        super().__init__('struct', reference.z3_sort, reference.default_value)
         assert parents is not None
         self.structure_name = name
         self.parents = parents
@@ -221,5 +211,5 @@ class StructureTypeInfo(TypeInfo):
         self.static_methods: dict[str, str] = {}  # name -> full signature (directly bound)
 
     def __str__(self) -> str:
-        return f"struct={repr(self.structure_name)}"
+        return f"struct={self.structure_name!r}"
 

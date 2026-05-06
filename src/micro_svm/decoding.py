@@ -158,7 +158,7 @@ class ModelDecoder:
             return None
 
         if type.is_reference():
-            assert isinstance(type, KnownReferenceTypeInfo)
+            assert isinstance(type, TypedReferenceTypeInfo)
             type = type.target_type
 
         size = z3.Select(self.machine._variable_cache.resolve(self.machine._collection_sizes, version), ref)
@@ -188,9 +188,9 @@ class ModelDecoder:
 
         src = self.machine._variable_cache.resolve(vv, version)
         if resolve_reference and type.is_reference():
-            if isinstance(type, OpaqueReferenceTypeInfo):
+            if isinstance(type, UntypedReferenceTypeInfo):
                 type = self.infer_reference_type(src)
-            assert isinstance(type, KnownReferenceTypeInfo), f"Unable to resolve opaque reference: {vv.variable}"
+            assert isinstance(type, TypedReferenceTypeInfo), f"Unable to resolve opaque reference: {vv.variable}"
             return self.decode_reference(src, type, version)
 
         else:
@@ -215,7 +215,7 @@ class ModelDecoder:
         return container_types
 
 
-    def infer_reference_type(self, object_ref: z3.ExprRef | int) -> KnownReferenceTypeInfo | None:
+    def infer_reference_type(self, object_ref: z3.ExprRef | int) -> TypedReferenceTypeInfo | None:
         if isinstance(object_ref, int):
             type = self.machine.statistics.resolve_ref_type(object_ref)
             if type is not None:

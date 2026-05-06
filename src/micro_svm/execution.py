@@ -10,11 +10,11 @@ from .type_hierarchy import TypeHierarchyResolver
 from .types import (
     PRIMITIVE_TYPES,
     ArrayTypeInfo,
-    KnownReferenceTypeInfo,
     MapTypeInfo,
     SetTypeInfo,
     StructureTypeInfo,
     TransformTypeInfo,
+    TypedReferenceTypeInfo,
     TypeInfo,
     array,
     boolean,
@@ -79,7 +79,7 @@ class SymbolicStateMachineStatistics:
         self.structures: dict[int, StructureTypeInfo] = {}
 
 
-    def resolve_ref_type(self, reference: int | None) -> KnownReferenceTypeInfo | None:
+    def resolve_ref_type(self, reference: int | None) -> TypedReferenceTypeInfo | None:
         if reference is None:
             return None
 
@@ -294,7 +294,7 @@ class SymbolicStateMachine:
             else:
                 value = v.initializer
 
-                if isinstance(t, KnownReferenceTypeInfo):
+                if isinstance(t, TypedReferenceTypeInfo):
                     self._init_reference(vv, value)
                 elif isinstance(t, PrimitiveTypeInfo) and t.name != reference.name:
                     self._init_primitive(vv, value)
@@ -315,7 +315,7 @@ class SymbolicStateMachine:
 
 
     def _init_reference(self, vv: VersionedVariable, value: object) -> None:
-        t = cast(KnownReferenceTypeInfo, vv.variable.type).target_type
+        t = cast(TypedReferenceTypeInfo, vv.variable.type).target_type
 
         if isinstance(t, ArrayTypeInfo):
             self._init_array_ref(vv, value)
@@ -342,7 +342,7 @@ class SymbolicStateMachine:
 
 
     def _init_array_ref(self, vv: VersionedVariable, value: list[object]) -> None:
-        t = cast(KnownReferenceTypeInfo, vv.variable.type).target_type
+        t = cast(TypedReferenceTypeInfo, vv.variable.type).target_type
         t = cast(ArrayTypeInfo, t).item_type
 
         # allocate the array object and define its size first
@@ -673,7 +673,7 @@ class SymbolicStateMachine:
 
         if type.is_reference():
             self._expressions.append(v_value >= 0)
-            if isinstance(type, KnownReferenceTypeInfo):
+            if isinstance(type, TypedReferenceTypeInfo):
                 tt = type.target_type
                 guard: z3.ExprRef = None
 
