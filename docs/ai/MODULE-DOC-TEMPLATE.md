@@ -1,4 +1,4 @@
-# micro_svm.(module-name)
+# micro_svm.module_name
 
 ## Overview
 

@@ -1,4 +1,4 @@
-# svm/exploration.py
+# micro_svm.exploration
 
 ## Overview
 
