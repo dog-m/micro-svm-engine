@@ -5,8 +5,6 @@ from .compiler import CompilerContext
 from .descriptors import FunctionInfo, VariableInfo, structure_member_to_signature
 from .types import FieldInfo, InitializerValueType, StructureTypeInfo, TypeInfo
 
-TAG_GLOBAL_VARIABLE = '$global'
-
 
 @final
 class GlobalContext:
