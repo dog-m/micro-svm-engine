@@ -1,7 +1,7 @@
 from typing import Callable, cast
 
 from .compiler import CompilerContext, Readable
-from .decoding import Source, StateIntermediateDescription, ValueOrigin
+from .decoding import StateIntermediateDescription, VariableSource
 from .descriptors import VariableInfo
 from .execution import SymbolicStateMachine, SymRefPolicy
 from .exploration import PathEnumerator, Program, ProgramPath
@@ -313,7 +313,7 @@ class DefectAnalyzer:
             for ref, rinfo in state.reachability_map.items():
                 grounding = rinfo.get_grounding()
                 if grounding is None:
-                    grounding = Source(ValueOrigin.VARIABLE, [ref_pool.get().name, 'local'])
+                    grounding = VariableSource(ref_pool.get().name, is_local=True)
                 ref_handles[ref] = cast(VariableRead, grounding.to_instructions(ref_handles)[0])
 
             instructions: list[Instruction] = []
@@ -322,8 +322,8 @@ class DefectAnalyzer:
                 handle_read = ref_handles[ref]
                 for source in rinfo.sources:
                     instructions.extend([
-                        handle_read,
                         *source.to_instructions(ref_handles),
+                        handle_read,
                         PrimitiveOp(PrimitiveOps.EQ),
                         Assume(),
                     ])

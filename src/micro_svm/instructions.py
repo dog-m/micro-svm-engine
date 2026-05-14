@@ -391,7 +391,7 @@ class FreeInstance(Instruction):
 @final
 class Copy(Instruction):
     """
-    Makes N copies of a value from the X'th position of the execution stack (starting from the top) putting them back on top.
+    Makes COUNT copies of a value from the INDEX'th position of the execution stack (starting from the top) putting them back on top.
     """
     __slots__ = ('number_of_copies', 'stack_position')
 

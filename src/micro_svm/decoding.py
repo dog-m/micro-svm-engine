@@ -1,6 +1,6 @@
+from abc import abstractmethod
 from dataclasses import dataclass
-from enum import Enum, auto
-from typing import final
+from typing import cast, final, override
 
 import z3
 
@@ -245,82 +245,200 @@ class ModelDecoder:
 
 
 
-@final
-class ValueOrigin(Enum):
-    VARIABLE  = auto()
-    FIELD     = auto()
-    ARRAY     = auto()
-    SET       = auto()
-    MAP       = auto()
-    TRANSFORM = auto()
 
 
-size_t = integer
 
 
-@dataclass
-class Source:
-    origin: ValueOrigin
-    retrieval_args: list[object]
 
-    def __repr__(self):
-        return f"({self.origin.name}, {self.retrieval_args})"
+class ValueSource(ABC):
 
+    def is_grounding(self) -> bool:
+        return False
+
+    @abstractmethod
     def to_instructions(self, ref_handles: dict[int, VariableRead]) -> list[Instruction]:
-        args = self.retrieval_args
-        match self.origin:
-            case ValueOrigin.VARIABLE:
-                name, locality = args
-                return [VariableRead(name, locality == 'local')]
+        ...
 
-            case ValueOrigin.FIELD:
-                object_ref, structure_name, field_name = args
-                return [
-                    ref_handles[object_ref],
-                    FieldRead(structure_name, field_name),
-                ]
 
-            case ValueOrigin.ARRAY:
-                container_ref, i = args
-                return [
-                    ref_handles[container_ref],
-                    PushPrimitive(i, size_t),
-                    ArrayOperation(ArrayOps.GET, reference),
-                ]
 
-            case ValueOrigin.SET:
-                container_ref = args[0]
-                return [
-                    ref_handles[container_ref],
-                    PushPrimitive(i, size_t),
-                    SetOperation(SetOps.ANY_ITEM, reference),
-                ]
+class VariableSource(ValueSource):
+    def __init__(self, name: str, is_local: bool):
+        assert name
+        self.name = name
+        self.is_local = is_local
 
-            case ValueOrigin.MAP:
-                container_ref, k_or_v = args[0]
-                return [
-                    ref_handles[container_ref],
-                    PushPrimitive(i, size_t),
-                    MapOperation(MapOps.ANY_KEY if k_or_v == 'key' else MapOps.ANY_VALUE, reference),
-                ]
+    @override
+    def is_grounding(self) -> bool:
+        return True
 
-            case ValueOrigin.TRANSFORM:
-                name, locality = args
-                return [VariableRead(name, locality == 'local')]
+    @override
+    def to_instructions(self, _: dict[int, VariableRead]) -> list[Instruction]:
+        # WARNING: strong assumption
+        return [
+            VariableRead(self.name, self.is_local),
+            # returns a reference
+        ]
 
-            case _:
-                raise AssertionError(f"Unexpected origin: {self.origin}")
+
+
+class FieldSource(ValueSource):
+    def __init__(self, object_ref: int, structure_name: str, field_name: str):
+        assert object_ref is not None
+        assert structure_name and field_name
+        self.object_ref = object_ref
+        self.structure_name = structure_name
+        self.field_name = field_name
+
+    @override
+    def to_instructions(self, ref_handles: dict[int, VariableRead]) -> list[Instruction]:
+        # WARNING: strong assumption
+        return [
+            ref_handles[self.object_ref],
+            FieldRead(self.structure_name, self.field_name),
+            # returns a reference
+        ]
+
+
+
+class ArrayElementSource(ValueSource):
+    def __init__(self, container_ref: int, index: int):
+        assert container_ref is not None
+        assert index >= 0
+        self.container_ref = container_ref
+        self.index = index
+        self.size_t = integer
+
+    @override
+    def to_instructions(self, ref_handles: dict[int, VariableRead]) -> list[Instruction]:
+        # WARNING: strong assumption
+        return [
+            ref_handles[self.container_ref],
+            PushPrimitive(self.index, self.size_t),
+            ArrayOperation(ArrayOps.GET, reference),
+            # returns a reference
+        ]
+
+
+
+class SetElementSource(ValueSource):
+    def __init__(self, container_ref: int):
+        assert container_ref is not None
+        self.container_ref = container_ref
+
+    @override
+    def to_instructions(self, ref_handles: dict[int, VariableRead]) -> list[Instruction]:
+        # WARNING: weak assumption
+        return [
+            ref_handles[self.container_ref],
+            SetOperation(SetOps.ANY_ITEM, reference),
+            # returns a reference
+        ]
+
+
+
+class MapKeySource(ValueSource):
+    def __init__(self, container_ref: int, kv_type: tuple[PrimitiveTypeInfo, PrimitiveTypeInfo], selector: ValueType):
+        assert container_ref is not None
+        assert kv_type is not None
+        self.container_ref = container_ref
+        self.kv_type = kv_type
+        self.selector = selector
+
+    @override
+    def to_instructions(self, ref_handles: dict[int, VariableRead]) -> list[Instruction]:
+        # WARNING: weak assumption
+        # TODO: use strong form or not? (container)
+        return [
+            ref_handles[self.container_ref],
+            MapOperation(MapOps.ANY_KEY, self.kv_type),
+            # returns a reference
+        ]
+
+
+
+class MapValueSource(ValueSource):
+    def __init__(self, container_ref: int, kv_type: tuple[PrimitiveTypeInfo, PrimitiveTypeInfo], selector: ValueType):
+        assert container_ref is not None
+        assert kv_type is not None
+        self.container_ref = container_ref
+        self.kv_type = kv_type
+        self.selector = selector
+
+    @override
+    def to_instructions(self, ref_handles: dict[int, VariableRead]) -> list[Instruction]:
+        # WARNING: weak assumption
+        # TODO: use strong form or not? (container)
+        return [
+            ref_handles[self.container_ref],
+            MapOperation(MapOps.ANY_VALUE, self.kv_type),
+            # returns a reference
+        ]
+
+
+
+class TransformKeySource(ValueSource):
+    def __init__(self, container_ref: int, kv_type: tuple[PrimitiveTypeInfo, PrimitiveTypeInfo], selector: ValueType):
+        assert container_ref is not None
+        assert kv_type is not None
+        self.container_ref = container_ref
+        self.kv_type = kv_type
+        self.selector = selector
+
+    @override
+    def to_instructions(self, ref_handles: dict[int, VariableRead]) -> list[Instruction]:
+        # WARNING: strong assumption
+        # TODO: use weak form or not? (container)
+        return [
+            PushSymbolic(self.kv_type[0]),  # key handle
+            PushSymbolic(self.kv_type[1]),  # value handle
+
+            Copy(index=0),  # duplicating "value" handle (allowed bc it's an anonymous variable)
+            PushPrimitive(self.selector, self.kv_type[1]),
+            PrimitiveOp(PrimitiveOps.EQ),
+            Assume(),  # need to do this bc Z3 doesn't like some expressions with primitives
+
+            ref_handles[self.container_ref],
+            Copy(index=1),  # duplicating "key" handle
+            TransformOperation(TransformOps.GET, self.kv_type),
+            # selector is the value
+
+            # the original symbolic value stays put so we can consume it here
+            PrimitiveOp(PrimitiveOps.EQ),
+            Assume(),
+            # the symbolic 'key' stays on top of the stack as return reference value
+        ]
+
+
+
+class TransformValueSource(ValueSource):
+    def __init__(self, container_ref: int, kv_type: tuple[PrimitiveTypeInfo, PrimitiveTypeInfo], selector: ValueType):
+        assert container_ref is not None
+        assert kv_type is not None
+        self.container_ref = container_ref
+        self.kv_type = kv_type
+        self.selector = selector
+
+    @override
+    def to_instructions(self, ref_handles: dict[int, VariableRead]) -> list[Instruction]:
+        # WARNING: weak assumption
+        # TODO: use strong form or not? (container)
+        return [
+            ref_handles[self.container_ref],
+            PushSymbolic(reference),  # picking 'any' key
+            TransformOperation(TransformOps.GET, self.kv_type),
+            # returns a reference
+        ]
 
 
 
 @dataclass
 class ReferenceInfo:
     type: TypeInfo
-    sources: list[Source]
+    sources: list[ValueSource]
 
-    def get_grounding(self) -> Source | None:
+    def get_grounding(self) -> ValueSource | None:
         for s in self.sources:
-            if s.origin is ValueOrigin.VARIABLE:
+            if s.is_grounding():
                 return s
         return None
 
@@ -356,22 +474,22 @@ class StateIntermediateDescription:
         state = StateIntermediateDescription()
         decoder = ModelDecoder(context, th_resolver, m)
 
-        queue: list[tuple[int, Source]] = []
-        def schedule(ref: int, source: ValueOrigin, args: list[object]) -> None:
+        queue: list[tuple[int, ValueSource]] = []
+        def schedule(ref: int, source: ValueSource) -> None:
             if ref != 0:
-                queue.append((ref, Source(source, args)))
+                queue.append((ref, source))
 
         for variable in local_variables:
             vv = m.to_versioned(variable.name, is_local=True, stack_frame=0)
             value = state._values[variable.name] = decoder.decode_value(m.read(vv), reference)
             if variable.type.is_reference():
-                schedule(value, ValueOrigin.VARIABLE, [variable.name, 'local'])
+                schedule(value, VariableSource(variable.name, is_local=True))  # "_local_0 = ptr"
 
         for variable in context.global_variables.values():
             vv = m.to_versioned(variable.name)
             value = state._values[variable.name] = decoder.decode_value(m.read(vv), reference)
             if variable.type.is_reference():
-                schedule(value, ValueOrigin.VARIABLE, [variable.name, 'global'])
+                schedule(value, VariableSource(variable.name, is_local=False))  # "GLOBAL_0 = ptr"
 
         # building dependency network
         while queue:
@@ -386,14 +504,18 @@ class StateIntermediateDescription:
                 unique_refs: set[int] = set()
 
                 if isinstance(type, StructureTypeInfo):
+                    value = cast(dict[str, tuple[ValueType, PrimitiveTypeInfo]], value)
+                    # ===
                     state.structure_instances.add(ref)
                     state.structure_count += 1
                     for fname, (fvalue, ftype) in value.items():
                         if ftype.is_reference() and fvalue not in unique_refs:
                             unique_refs.add(fvalue)
-                            schedule(fvalue, ValueOrigin.FIELD, [ref, type.structure_name, fname])
+                            schedule(fvalue, FieldSource(ref, type.structure_name, fname))  # "myObj.foo = ptr"
 
                 elif isinstance(type, (ArrayTypeInfo, SetTypeInfo)):
+                    value = cast(list[ValueType], value)
+                    # ===
                     state.collection_sizes[ref] = len(value)
                     state.collection_count += 1
                     if type.item_type.is_reference():
@@ -401,27 +523,31 @@ class StateIntermediateDescription:
                             for i, item in enumerate(value):
                                 if item not in unique_refs:
                                     unique_refs.add(item)
-                                    schedule(item, ValueOrigin.ARRAY, [ref, i])
+                                    schedule(item, ArrayElementSource(ref, i))  # "arr[i] = ptr"
                         else:
                             # all items are expected to be unique in a set
                             for item in value:
-                                schedule(item, ValueOrigin.SET, [ref])
+                                schedule(item, SetElementSource(ref))  # "set.any() = ptr" ???
 
                 elif isinstance(type, (MapTypeInfo, TransformTypeInfo)):
+                    value = cast(list[tuple[ValueType, ValueType]], value)
+                    # ===
                     state.collection_sizes[ref] = len(value)
                     state.collection_count += 1  # 'transform' is 'container-like' but anyway
                     rkey   = type.key_type.is_reference()
                     rvalue = type.value_type.is_reference()
                     if rkey or rvalue:
-                        source = ValueOrigin.MAP if isinstance(type, MapTypeInfo) else ValueOrigin.TRANSFORM
+                        is_map = isinstance(type, MapTypeInfo)
+                        source_key   = MapKeySource   if is_map else TransformKeySource
+                        source_value = MapValueSource if is_map else TransformValueSource
                         for (k, v) in value:
                             if rkey and k not in unique_refs:
                                 unique_refs.add(k)
-                                schedule(k, source, [ref])
+                                schedule(k, source_key(ref, type.kv_type, v))  # "map[ptr] = v", value are not always unique
 
                             if rvalue and v not in unique_refs:
                                 unique_refs.add(v)
-                                schedule(v, source, [ref])
+                                schedule(v, source_value(ref, type.kv_type, k))  # "map[k] = ptr", keys are unique
 
                 else:
                     raise AssertionError(f"Unexpected type: {type}")
