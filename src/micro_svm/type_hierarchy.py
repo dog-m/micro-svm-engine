@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 
 from .descriptors import structure_member_to_signature
 from .global_context import GlobalContext
@@ -37,10 +37,10 @@ class TypeHierarchyResolver:
                 subs[parent].add(sname)
 
         # propagating parents level-by-level (BFS/BFT)
-        queue = list(self.root_structures)
+        queue = deque(self.root_structures)
         visited = set()
         while queue:
-            struct = queue.pop(0)
+            struct = queue.popleft()
             sinfo = self._ctx.structures[struct]
 
             if struct not in visited:
@@ -134,7 +134,7 @@ class TypeHierarchyResolver:
         result: dict[str, str] = {}
 
         # traversing down the hierarchy in search of implementations
-        queue: list[str] = [structure_name]
+        queue = deque([structure_name])
         visited: set[str] = set()
         while queue:
             struct = queue.pop()
