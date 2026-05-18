@@ -116,7 +116,7 @@ def show_compiled_specs(spec: GlobalContext):
     v = ProgramVisualiser()
 
     for variable in spec.global_variables.values():
-        v.simple(f"{variable} = {repr(variable.initializer)}")
+        v.simple(f"{variable} = {variable.initializer!r}")
     print()
 
     def show_function(func: FunctionInfo) -> None:
@@ -137,7 +137,7 @@ def show_compiled_specs(spec: GlobalContext):
         if len(struct.parents) > 0:
             suffix = ', '.join([repr(p) for p in struct.parents])
             suffix = f" extends {suffix}"
-        v.simple(f"struct {repr(struct.structure_name)}{suffix}:")
+        v.simple(f"struct {struct.structure_name!r}{suffix}:")
 
         # body
         v.update_indentation(+1)

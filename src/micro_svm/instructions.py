@@ -27,7 +27,7 @@ class Noop(Instruction):
         self.comment = comment
 
     def __str__(self) -> str:
-        ending = '' if self.comment is None else f" [comment={repr(self.comment)}]"
+        ending = '' if self.comment is None else f" [comment={self.comment!r}]"
         return f"{self.__class__.__name__}{ending}"
 
 
@@ -44,7 +44,7 @@ class ControlPoint(Instruction):
         self.control_id = control_id
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} [id={repr(self.control_id)}]"
+        return f"{self.__class__.__name__} [id={self.control_id!r}]"
 
 
 

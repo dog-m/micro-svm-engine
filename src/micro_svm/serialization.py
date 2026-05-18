@@ -605,7 +605,7 @@ class TypeDecoder:
                 case 'string':
                     return string
                 case o:
-                    raise AssertionError(f"Unknown type reference: {repr(o)}")
+                    raise AssertionError(f"Unknown type reference: {o!r}")
 
 
 
@@ -970,7 +970,7 @@ class CfgDecoder:
         result: Node | None = None
         last_node: Node = None
         while info is not None:
-            decoder = getattr(self, f"_decode_{info['_']}", Node)
+            decoder = getattr(self, f"_decode_{info['_']}", None)
             if decoder is None:
                 raise AssertionError(f"No decoder for {info['_']}")
             else:
@@ -1059,7 +1059,7 @@ class ProgramStateDecoder:
         else:
             is_valid = state is None or isinstance(state, (str, int, float))
         if not is_valid:
-            raise ValueError(f"Invalid value for type '{type}': {repr(state)}")
+            raise ValueError(f"Invalid value for type '{type}': {state!r}")
         return state
 
     def decode_object(self, name: str, info: dict[str, object]) -> ObjectState:

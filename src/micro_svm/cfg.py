@@ -74,7 +74,7 @@ class FailurePath(MarkerNode):
         self.metadata = metadata
 
     def __str__(self) -> str:
-        return f"<marker: failure> [metadata={repr(self.metadata)}]"
+        return f"<marker: failure> [metadata={self.metadata!r}]"
 
     def clone_self(self, dup_instructions: bool = False):
         return FailurePath(self.metadata)
@@ -396,7 +396,7 @@ class ProgramVisualiser:
     def visit_CFG_TryBlock(self, node: TryBlock) -> None:
         self.show('try', node.body)
         for struct_name, handler in node.catch_handlers.items():
-            self.show(f"catch [struct={repr(struct_name)}]", handler)
+            self.show(f"catch [struct={struct_name!r}]", handler)
         if node.finishing_section is not None:
             self.show('finally', node.finishing_section)
 
