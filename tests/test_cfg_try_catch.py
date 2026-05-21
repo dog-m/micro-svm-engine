@@ -19,12 +19,12 @@ spec.register_structure('my_exception_bar', [])
 
 def foo(cc: CompilerContext) -> None:
     cc.noop('foo')
-    cc.try_block(lambda: (
+    cc.begin_try(lambda: (
         cc.noop('foo_throw'),
         cc.throw(cc.symbolic(reference)),
     )).catch('my_exception_foo', lambda e: (
         cc.noop('foo_catch'),
-    )).explore()
+    )).end_try()
     cc.noop('foo_end')
 
 spec.register_function(
@@ -37,13 +37,13 @@ spec.register_function(
 
 def bar(cc: CompilerContext) -> None:
     cc.noop('bar')
-    cc.try_block(lambda: (
+    cc.begin_try(lambda: (
         cc.call(foo.__name__, [], None),
     )).catch('my_exception_bar', lambda e: (
         cc.noop('bar_catch'),
     )).final(lambda: (
         cc.noop('bar_final'),
-    )).explore()
+    )).end_try()
     cc.noop('bar_end')
 
 spec.register_function(

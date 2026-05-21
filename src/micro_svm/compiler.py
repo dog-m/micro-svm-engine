@@ -75,8 +75,9 @@ class Readable:
 
 
 type PType = PrimitiveTypeInfo
-type BranchCallback           = Callable[[], None]
-type BranchCallbackWithResult = Callable[[], Readable]
+type BranchCallback                = Callable[[], None]
+type BranchCallbackWithResult      = Callable[[], Readable]
+type TypedExceptionHandlerCallback = Callable[[JoinedHandle], None]
 
 class VariableHandle:
     def __init__(self,
@@ -96,8 +97,8 @@ class JoinedHandle:
         self.w = write_handle
 
 
-class GraphJunctionBuilder:
-    def warn_incomplete(self) -> None: ...
+class GraphJunctionBuilder(ABC):
+    pass
 
 
 
@@ -334,7 +335,7 @@ class CompilerContext:
         )
 
 
-    def set_get_any(self, item_type: PType, set_ref: Readable) -> None:
+    def set_get_any(self, item_type: PType, set_ref: Readable) -> Readable:
         return Readable(
             *set_ref.instructions,
             SetOperation(SetOps.ANY_ITEM, item_type),
@@ -781,18 +782,18 @@ class CompilerContext:
         )
 
 
-    def try_block(self, body: BranchCallback):
+    def begin_try(self, body: BranchCallback):
         assert body is not None
 
         class TryBuilder(GraphJunctionBuilder):
             def __init__(self, ctx: CompilerContext, body: BranchCallback):
                 self._ctx = ctx
                 self._body = body
-                self._catch_handlers: dict[str, Callable[[JoinedHandle], None]] = {}
+                self._catch_handlers: dict[str, TypedExceptionHandlerCallback] = {}
                 self._finally_handler = None
                 ctx._incomplete_builders.append(self)
 
-            def catch(self, error_structure_type: str, handler: Callable[[JoinedHandle], None]):
+            def catch(self, error_structure_type: str, handler: TypedExceptionHandlerCallback):
                 assert error_structure_type and error_structure_type != EXCEPTION_MATCHER_ALL
                 assert handler is not None
                 self._catch_handlers[error_structure_type] = handler
@@ -804,7 +805,7 @@ class CompilerContext:
                 return self
 
 
-            def explore(self) -> None:
+            def end_try(self) -> None:
                 cc = self._ctx
                 cc._incomplete_builders.remove(self)
                 assert len(self._catch_handlers) > 0 or self._finally_handler is not None
@@ -823,7 +824,7 @@ class CompilerContext:
                 for structure_name, handler in self._catch_handlers.items():
                     handler_entry = cc._current_block = BasicBlock()
                     exception = cc.make_local_variable(reference)
-                    # pushing the 'flying' error value into a variable
+                    # pushing the 'flying' error value into the temporary variable
                     cc.write(exception.w, Readable(
                         ExceptionRead(),
                     ))
@@ -841,7 +842,7 @@ class CompilerContext:
                 if self._finally_handler is not None:
                     try_node.finishing_section = cc._current_block = BasicBlock()
                     exception = cc.make_local_variable(reference)
-                    # pushing the 'flying' error value into a variable
+                    # pushing the 'flying' error value into the temporary variable
                     cc.write(exception.w, Readable(
                         ExceptionRead(),
                     ))
@@ -949,7 +950,7 @@ class CompilerContext:
         )
 
 
-    def string_length(self, s: Readable, old: Readable, new: Readable) -> Readable:
+    def string_replace(self, s: Readable, old: Readable, new: Readable) -> Readable:
         return Readable(
             *s.instructions,
             *old.instructions,
