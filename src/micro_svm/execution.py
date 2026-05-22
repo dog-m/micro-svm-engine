@@ -149,14 +149,14 @@ def typeid_name_for_transform(ktype: TypeInfo, vtype: TypeInfo) -> str:
 @final
 class MachineConfig:
     def __init__(self, solver_timeout: int | None):
-        self.allow_type_unions = True
+        self.allow_type_unions = True  # UNUSED!
         self.fault_mode = FaultMode.AVOID
-        self.solver_timeout = int(solver_timeout)
+        self.solver_timeout = int(solver_timeout) if solver_timeout else None
         self.solver_try_count = 10
         self.solver_tuning: dict[str, object] = {
             'qi.max_multi_patterns': 40,
             'rewrite_patterns': True,
-            'threads': os.cpu_count() // 2,          # seems to be a decent approximation
+            'threads': max(1, os.cpu_count() // 2),          # seems to be a decent approximation
             'threads.max_conflicts': 2_000_000_000,  # 400 by default
             #'unsat_core': True,                     # sometimes this causes false-negatives
             #'arith.random_initial_value': True,
@@ -668,7 +668,7 @@ class SymbolicStateMachine:
 
 
     def _make_symbolic(self, type: PrimitiveTypeInfo) -> z3.ExprRef:
-        v_value = z3.Const(f"#sym:{self._next_unique_id}", type.z3_sort)
+        v_value = z3.Const(f"@sym{self._next_unique_id}", type.z3_sort)
         self._next_unique_id += 1
 
         if type.is_reference():
@@ -832,12 +832,12 @@ class SymbolicStateMachine:
         return self._wrap_primitive(self._last_ref, reference)
 
 
-    def advance_ref_counter(self, number_of_references: int) -> None:
+    def advance_ref_counter(self, delta: int) -> None:
         """
         This method might be useful for manually initializing N objects manually.
         """
-        assert number_of_references >= 0
-        self._last_ref += number_of_references
+        assert delta >= 0
+        self._last_ref += delta
 
 
     def array_ref_init(self, dst: z3.ExprRef, size: z3.ExprRef, item_type: PrimitiveTypeInfo) -> None:
