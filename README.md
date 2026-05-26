@@ -54,7 +54,14 @@ pip install micro-svm
 - Exceptions regarding null-dereferencing, invalid array indexing and alike cannot be raised and caught automatically. It is advised to use `CompilerContext.get_fault_status` and `throw` to raise a suitable exception object. Note that `get_fault_status` is unhelpful unless `SymbolicStateMachine.fault_mode` is set to `STORE`.
 - No tools for managing dynamic reflection operations (field access by symbolic name strings, method creation, etc.).
 
-## Cite
+## Documentation
+
+Detailed documentation for the symbolic VM can be found in:
+
+- [`docs/PROJECT.md`](docs/PROJECT.md) - Complete engine documentation
+- [`docs/modules/`](docs/modules/) - Detailed module documentation
+
+## Citation
 
 ```text
 @software{microsvm2026,
